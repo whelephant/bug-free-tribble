@@ -5,33 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Methods 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<!-- Times New Roman used as system font, no import needed -->
 <style>
   :root {
-    --cream: #faf6ee; --warm-white: #fff9f0;
-    --ink: #1a1208; --ink-light: #4a3f2f; --ink-muted: #8a7a65;
-    --amber: #c97d20; --amber-light: #f0a83a; --amber-pale: #fdeec9;
-    --green: #2d6a4f; --green-pale: #d8f0e6;
-    --red: #9b2226; --red-pale: #f5e0e0;
-    --blue: #1a4a7a;
-    --border: #d8cdb8; --shadow: rgba(60,40,10,0.10);
+    /* Pantone palette */
+    --amberlight: #e8c9b0;   /* 14-1217 Amberlight  */
+    --skyway:     #b0c4d8;   /* 14-4112 Skyway      */
+    --toffee:     #7a5230;   /* 18-1031 Toffee      */
+    --rhythmic:   #9b1b30;   /* 19-1653 Rhythmic Red*/
+    --tawny:      #7a2b3d;   /* 19-1725 Tawny Port  */
+    --blueopal:   #1b4a6b;   /* 19-4120 Blue Opal   */
+    --syrah:      #6b1e2a;   /* 19-1535 Syrah       */
+
+    /* Mapped roles */
+    --cream:      #f5ede4;          /* warm off-white from Amberlight family */
+    --warm-white: #faf3ee;
+    --ink:        #2a1a10;          /* deep warm dark */
+    --ink-light:  #4a3020;
+    --ink-muted:  #7a6050;
+    --amber:      var(--toffee);    /* primary action = Toffee brown */
+    --amber-light: #9a6840;
+    --amber-pale: #f0e0d0;
+    --green:      var(--blueopal);  /* "success/progress" = Blue Opal */
+    --green-pale: #d0e4f0;
+    --red:        var(--rhythmic);  /* danger = Rhythmic Red */
+    --red-pale:   #f5d0d5;
+    --blue:       var(--blueopal);  /* admin header */
+    --border:     #c8b8a8;
+    --shadow:     rgba(40,20,10,0.12);
+
+    /* Term colours */
+    --term1-bg:   var(--toffee);
+    --term2-bg:   var(--blueopal);
+    --term3-bg:   var(--tawny);
+    --term4-bg:   var(--syrah);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--cream); color: var(--ink); font-family: 'Source Serif 4', serif; min-height: 100vh; }
+  body { background: var(--cream); color: var(--ink); font-family: 'Times New Roman', Times, serif; min-height: 100vh; }
 
   .screen { display: none; }
   .screen.active { display: block; }
   .center-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
 
   .auth-card { background: var(--warm-white); border: 1.5px solid var(--border); border-radius: 6px; padding: 3rem 3.5rem; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 8px 40px var(--shadow); }
-  .logo { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--amber); }
+  .logo { font-family: 'Times New Roman', Times, serif; font-size: 2rem; font-weight: 700; color: var(--amber); }
   .sub { font-size: 0.88rem; color: var(--ink-muted); margin-top: 0.2rem; font-style: italic; }
-  .auth-card h2 { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 600; margin: 1.8rem 0 1.2rem; color: var(--ink); }
+  .auth-card h2 { font-family: 'Times New Roman', Times, serif; font-size: 1.2rem; font-weight: 600; margin: 1.8rem 0 1.2rem; color: var(--ink); }
   .field { text-align: left; margin-bottom: 0.9rem; }
   .field label { display: block; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 0.35rem; font-weight: 600; }
-  .field input { width: 100%; padding: 0.7rem 0.9rem; border: 1.5px solid var(--border); border-radius: 3px; background: var(--cream); font-family: 'Source Serif 4', serif; font-size: 0.95rem; color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .field input { width: 100%; padding: 0.7rem 0.9rem; border: 1.5px solid var(--border); border-radius: 3px; background: var(--cream); font-family: 'Times New Roman', Times, serif; font-size: 0.95rem; color: var(--ink); outline: none; transition: border-color 0.2s; }
   .field input:focus { border-color: var(--amber); }
-  .btn-primary { width: 100%; padding: 0.8rem; background: var(--amber); color: white; border: none; border-radius: 3px; font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 0.4rem; }
+  .btn-primary { width: 100%; padding: 0.8rem; background: var(--amber); color: white; border: none; border-radius: 3px; font-family: 'Times New Roman', Times, serif; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 0.4rem; }
   .btn-primary:hover { background: #b56d18; }
   .btn-primary:disabled { background: var(--border); cursor: default; }
   .auth-switch { margin-top: 1.2rem; font-size: 0.85rem; color: var(--ink-muted); }
@@ -41,19 +65,19 @@
   .msg.success { color: var(--green); }
   .divider { display: flex; align-items: center; gap: 0.8rem; margin: 1.2rem 0; color: var(--ink-muted); font-size: 0.8rem; }
   .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .btn-secondary { width: 100%; padding: 0.7rem; background: transparent; color: var(--ink-muted); border: 1.5px solid var(--border); border-radius: 3px; font-family: 'Source Serif 4', serif; font-size: 0.88rem; cursor: pointer; transition: all 0.2s; }
+  .btn-secondary { width: 100%; padding: 0.7rem; background: transparent; color: var(--ink-muted); border: 1.5px solid var(--border); border-radius: 3px; font-family: 'Times New Roman', Times, serif; font-size: 0.88rem; cursor: pointer; transition: all 0.2s; }
   .btn-secondary:hover { border-color: var(--ink-muted); color: var(--ink); }
 
   header { background: var(--ink); color: var(--cream); padding: 2rem 2.5rem; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
   .course-label { font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--amber-light); font-weight: 600; }
-  header h1 { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; line-height: 1.1; margin-top: 0.25rem; }
+  header h1 { font-family: 'Times New Roman', Times, serif; font-size: 2.2rem; font-weight: 700; line-height: 1.1; margin-top: 0.25rem; }
   .tagline { color: #b8a98a; font-size: 0.88rem; margin-top: 0.3rem; font-style: italic; }
   .header-right { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
   .user-badge { display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; padding: 0.45rem 0.9rem; font-size: 0.85rem; color: #e0d4be; }
   .user-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber-light); }
-  .btn-outline { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.25); border-radius: 3px; background: transparent; color: #c8bba0; font-family: 'Source Serif 4', serif; font-size: 0.83rem; cursor: pointer; transition: all 0.2s; }
+  .btn-outline { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.25); border-radius: 3px; background: transparent; color: #c8bba0; font-family: 'Times New Roman', Times, serif; font-size: 0.83rem; cursor: pointer; transition: all 0.2s; }
   .btn-outline:hover { border-color: rgba(255,255,255,0.5); color: white; }
-  .drive-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--amber); color: white; text-decoration: none; padding: 0.6rem 1.1rem; border-radius: 3px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 0.88rem; transition: background 0.2s; white-space: nowrap; }
+  .drive-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--amber); color: white; text-decoration: none; padding: 0.6rem 1.1rem; border-radius: 3px; font-family: 'Times New Roman', Times, serif; font-weight: 600; font-size: 0.88rem; transition: background 0.2s; white-space: nowrap; }
   .drive-btn:hover { background: var(--amber-light); }
 
   nav { background: var(--warm-white); border-bottom: 1.5px solid var(--border); display: flex; }
@@ -66,11 +90,13 @@
   .panel.active { display: block; }
 
   .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem; }
-  .section-head h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 600; }
+  .section-head h2 { font-family: 'Times New Roman', Times, serif; font-size: 1.5rem; font-weight: 600; }
   .term-block { margin-bottom: 2.5rem; }
-  .term-label { color: white; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 0.93rem; padding: 0.5rem 1rem; border-radius: 3px 3px 0 0; }
-  .term-label.t1 { background: var(--amber); }
-  .term-label.t2 { background: var(--green); }
+  .term-label { color: white; font-family: 'Times New Roman', Times, serif; font-weight: 600; font-size: 0.93rem; padding: 0.5rem 1rem; border-radius: 3px 3px 0 0; }
+  .term-label.t1 { background: var(--term1-bg); }
+  .term-label.t2 { background: var(--term2-bg); }
+  .term-label.t3 { background: var(--term3-bg); }
+  .term-label.t4 { background: var(--term4-bg); }
   .schedule-table { width: 100%; border-collapse: collapse; background: var(--warm-white); border: 1.5px solid var(--border); border-top: none; font-size: 0.88rem; }
   .schedule-table th { background: #e8e0d0; padding: 0.6rem 0.85rem; text-align: left; font-size: 0.73rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); font-weight: 600; }
   .schedule-table td { padding: 0.6rem 0.85rem; border-top: 1px solid var(--border); vertical-align: top; color: var(--ink-light); }
@@ -91,32 +117,34 @@
   .hw-item.done .hw-check { background: var(--green); border-color: var(--green); color: white; }
   .hw-text { font-size: 0.9rem; color: var(--ink); }
   .hw-tag { display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 20px; margin-top: 0.3rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-  .hw-tag.t1 { background: var(--amber-pale); color: var(--amber); }
-  .hw-tag.t2 { background: var(--green-pale); color: var(--green); }
-  .btn-ghost { margin-top: 1rem; padding: 0.4rem 0.9rem; border: 1.5px solid var(--border); border-radius: 3px; background: var(--warm-white); font-family: 'Source Serif 4', serif; font-size: 0.82rem; cursor: pointer; color: var(--ink-muted); }
+  .hw-tag.t1 { background: #e8d8c8; color: var(--toffee); }
+  .hw-tag.t2 { background: var(--green-pale); color: var(--blueopal); }
+  .hw-tag.t3 { background: #f0d8de; color: var(--tawny); }
+  .hw-tag.t4 { background: #e8d0d4; color: var(--syrah); }
+  .btn-ghost { margin-top: 1rem; padding: 0.4rem 0.9rem; border: 1.5px solid var(--border); border-radius: 3px; background: var(--warm-white); font-family: 'Times New Roman', Times, serif; font-size: 0.82rem; cursor: pointer; color: var(--ink-muted); }
   .btn-ghost:hover { border-color: var(--red); color: var(--red); }
 
   .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--amber); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   #screen-admin { background: var(--cream); min-height: 100vh; }
-  .admin-header { background: var(--blue); color: white; padding: 1.5rem 2.5rem; display: flex; align-items: center; justify-content: space-between; }
-  .admin-header h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 600; }
+  .admin-header { background: var(--syrah); color: white; padding: 1.5rem 2.5rem; display: flex; align-items: center; justify-content: space-between; }
+  .admin-header h1 { font-family: 'Times New Roman', Times, serif; font-size: 1.6rem; font-weight: 600; }
   .admin-badge { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; background: rgba(255,255,255,0.15); padding: 0.25rem 0.6rem; border-radius: 2px; margin-left: 0.8rem; vertical-align: middle; }
   .admin-main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
   .admin-section { background: var(--warm-white); border: 1.5px solid var(--border); border-radius: 4px; margin-bottom: 2.5rem; overflow: hidden; }
   .admin-section-head { padding: 1rem 1.4rem; border-bottom: 1.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: #ede7da; }
-  .admin-section-head h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; }
+  .admin-section-head h3 { font-family: 'Times New Roman', Times, serif; font-size: 1.1rem; font-weight: 600; }
   .admin-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
   .admin-table th { background: #e8e0d0; padding: 0.55rem 0.8rem; text-align: left; font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-light); font-weight: 600; }
   .admin-table td { padding: 0.5rem 0.8rem; border-top: 1px solid var(--border); vertical-align: middle; }
   .admin-table tr:hover td { background: var(--cream); }
-  .admin-input { width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 2px; background: var(--cream); font-family: 'Source Serif 4', serif; font-size: 0.87rem; color: var(--ink); outline: none; }
+  .admin-input { width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 2px; background: var(--cream); font-family: 'Times New Roman', Times, serif; font-size: 0.87rem; color: var(--ink); outline: none; }
   .admin-input:focus { border-color: var(--amber); }
-  .admin-select { padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 2px; background: var(--cream); font-family: 'Source Serif 4', serif; font-size: 0.87rem; color: var(--ink); outline: none; }
-  .btn-add { padding: 0.45rem 1rem; background: var(--green); color: white; border: none; border-radius: 3px; font-family: 'Source Serif 4', serif; font-size: 0.83rem; cursor: pointer; transition: background 0.2s; }
+  .admin-select { padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 2px; background: var(--cream); font-family: 'Times New Roman', Times, serif; font-size: 0.87rem; color: var(--ink); outline: none; }
+  .btn-add { padding: 0.45rem 1rem; background: var(--green); color: white; border: none; border-radius: 3px; font-family: 'Times New Roman', Times, serif; font-size: 0.83rem; cursor: pointer; transition: background 0.2s; }
   .btn-add:hover { background: #245a40; }
-  .btn-save { padding: 0.45rem 1rem; background: var(--amber); color: white; border: none; border-radius: 3px; font-family: 'Source Serif 4', serif; font-size: 0.83rem; cursor: pointer; transition: background 0.2s; }
+  .btn-save { padding: 0.45rem 1rem; background: var(--amber); color: white; border: none; border-radius: 3px; font-family: 'Times New Roman', Times, serif; font-size: 0.83rem; cursor: pointer; transition: background 0.2s; }
   .btn-save:hover { background: #b56d18; }
   .btn-delete { padding: 0.3rem 0.6rem; background: transparent; color: var(--red); border: 1px solid transparent; border-radius: 2px; font-size: 0.88rem; cursor: pointer; transition: all 0.15s; }
   .btn-delete:hover { background: var(--red-pale); border-color: var(--red); }
@@ -446,23 +474,36 @@ async function loadSchedule() {
   renderSchedule(data || []);
 }
 
-function renderSchedule(rows) {
-  const t1 = rows.filter(r => r.term === 1);
-  const t2 = rows.filter(r => r.term === 2);
-  let html = '';
+const TERM_META = {
+  1: { label:'Term 1', cls:'t1' },
+  2: { label:'Term 2', cls:'t2' },
+  3: { label:'Term 3', cls:'t3' },
+  4: { label:'Term 4', cls:'t4' },
+};
 
-  if (t1.length) {
-    html += `<div class="term-block"><div class="term-label t1">Term 1</div>
-    <table class="schedule-table"><thead><tr><th>Week</th><th>Content</th><th>Homework</th></tr></thead><tbody>`;
-    t1.forEach(r => { html += `<tr><td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td></tr>`; });
+function renderSchedule(rows) {
+  let html = '';
+  [1,2,3,4].forEach(t => {
+    const group = rows.filter(r => r.term === t);
+    if (!group.length) return;
+    const { label, cls } = TERM_META[t];
+    const hasDates = group.some(r => r.week_commencing);
+    const hasVcaa  = group.some(r => r.vcaa_exam);
+    html += `<div class="term-block"><div class="term-label ${cls}">${label}</div>
+    <table class="schedule-table"><thead><tr>`;
+    if (hasDates) html += `<th>Date</th>`;
+    html += `<th>Week</th><th>Content</th><th>Homework</th>`;
+    if (hasVcaa)  html += `<th>VCAA Exam</th>`;
+    html += `</tr></thead><tbody>`;
+    group.forEach(r => {
+      html += `<tr>`;
+      if (hasDates) html += `<td class="dt">${r.week_commencing||''}</td>`;
+      html += `<td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td>`;
+      if (hasVcaa)  html += `<td>${r.vcaa_exam||''}</td>`;
+      html += `</tr>`;
+    });
     html += `</tbody></table></div>`;
-  }
-  if (t2.length) {
-    html += `<div class="term-block"><div class="term-label t2">Term 2</div>
-    <table class="schedule-table"><thead><tr><th>Date</th><th>Week</th><th>Content</th><th>Homework</th><th>VCAA Exam</th></tr></thead><tbody>`;
-    t2.forEach(r => { html += `<tr><td class="dt">${r.week_commencing||''}</td><td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td><td>${r.vcaa_exam||''}</td></tr>`; });
-    html += `</tbody></table></div>`;
-  }
+  });
   if (!html) html = '<div class="empty-state">No schedule yet — check back soon.</div>';
   document.getElementById('schedule-content').innerHTML = html;
 }
@@ -562,12 +603,14 @@ function makeSchedRow(r, i) {
     <td><select class="admin-select" onchange="schedData[${i}].term=parseInt(this.value)">
       <option value="1" ${r.term===1?'selected':''}>Term 1</option>
       <option value="2" ${r.term===2?'selected':''}>Term 2</option>
+      <option value="3" ${r.term===3?'selected':''}>Term 3</option>
+      <option value="4" ${r.term===4?'selected':''}>Term 4</option>
     </select></td>
-    <td><input class="admin-input" type="number" value="${r.week_number||''}" onchange="schedData[${i}].week_number=parseInt(this.value)||0" style="width:56px"></td>
-    <td><input class="admin-input" type="text" value="${r.week_commencing||''}" placeholder="d/m/yyyy" onchange="schedData[${i}].week_commencing=this.value"></td>
-    <td><input class="admin-input" type="text" value="${r.content||''}" onchange="schedData[${i}].content=this.value"></td>
-    <td><input class="admin-input" type="text" value="${r.homework||''}" onchange="schedData[${i}].homework=this.value"></td>
-    <td><input class="admin-input" type="text" value="${r.vcaa_exam||''}" onchange="schedData[${i}].vcaa_exam=this.value" style="width:72px"></td>
+    <td><input class="admin-input" type="number" value="${r.week_number||''}" oninput="schedData[${i}].week_number=parseInt(this.value)||0" style="width:56px"></td>
+    <td><input class="admin-input" type="text" value="${r.week_commencing||''}" placeholder="d/m/yyyy" oninput="schedData[${i}].week_commencing=this.value"></td>
+    <td><input class="admin-input" type="text" value="${r.content||''}" oninput="schedData[${i}].content=this.value"></td>
+    <td><input class="admin-input" type="text" value="${r.homework||''}" oninput="schedData[${i}].homework=this.value"></td>
+    <td><input class="admin-input" type="text" value="${r.vcaa_exam||''}" oninput="schedData[${i}].vcaa_exam=this.value" style="width:72px"></td>
     <td><button class="btn-delete" onclick="deleteSchedRow(${i})">✕</button></td>`;
   return tr;
 }
@@ -625,9 +668,11 @@ function makeHwRow(r, i) {
     <td><select class="admin-select" onchange="hwData[${i}].term=parseInt(this.value)">
       <option value="1" ${r.term===1?'selected':''}>Term 1</option>
       <option value="2" ${r.term===2?'selected':''}>Term 2</option>
+      <option value="3" ${r.term===3?'selected':''}>Term 3</option>
+      <option value="4" ${r.term===4?'selected':''}>Term 4</option>
     </select></td>
-    <td><input class="admin-input" type="text" value="${r.week_label||''}" placeholder="T2 · Week 3" onchange="hwData[${i}].week_label=this.value"></td>
-    <td><input class="admin-input" type="text" value="${r.text||''}" onchange="hwData[${i}].text=this.value"></td>
+    <td><input class="admin-input" type="text" value="${r.week_label||''}" placeholder="T2 · Week 3" oninput="hwData[${i}].week_label=this.value"></td>
+    <td><input class="admin-input" type="text" value="${r.text||''}" oninput="hwData[${i}].text=this.value"></td>
     <td><button class="btn-delete" onclick="deleteHwRow(${i})">✕</button></td>`;
   return tr;
 }
