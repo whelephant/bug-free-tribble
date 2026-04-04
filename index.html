@@ -13,18 +13,16 @@
     --amber: #c97d20; --amber-light: #f0a83a; --amber-pale: #fdeec9;
     --green: #2d6a4f; --green-pale: #d8f0e6;
     --red: #9b2226; --red-pale: #f5e0e0;
-    --blue: #1a4a7a; --blue-pale: #e0eaf5;
+    --blue: #1a4a7a;
     --border: #d8cdb8; --shadow: rgba(60,40,10,0.10);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--cream); color: var(--ink); font-family: 'Source Serif 4', serif; min-height: 100vh; }
 
-  /* SCREENS */
   .screen { display: none; }
   .screen.active { display: block; }
   .center-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
 
-  /* AUTH CARDS */
   .auth-card { background: var(--warm-white); border: 1.5px solid var(--border); border-radius: 6px; padding: 3rem 3.5rem; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 8px 40px var(--shadow); }
   .logo { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--amber); }
   .sub { font-size: 0.88rem; color: var(--ink-muted); margin-top: 0.2rem; font-style: italic; }
@@ -46,7 +44,6 @@
   .btn-secondary { width: 100%; padding: 0.7rem; background: transparent; color: var(--ink-muted); border: 1.5px solid var(--border); border-radius: 3px; font-family: 'Source Serif 4', serif; font-size: 0.88rem; cursor: pointer; transition: all 0.2s; }
   .btn-secondary:hover { border-color: var(--ink-muted); color: var(--ink); }
 
-  /* HEADER */
   header { background: var(--ink); color: var(--cream); padding: 2rem 2.5rem; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
   .course-label { font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--amber-light); font-weight: 600; }
   header h1 { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; line-height: 1.1; margin-top: 0.25rem; }
@@ -58,10 +55,7 @@
   .btn-outline:hover { border-color: rgba(255,255,255,0.5); color: white; }
   .drive-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--amber); color: white; text-decoration: none; padding: 0.6rem 1.1rem; border-radius: 3px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 0.88rem; transition: background 0.2s; white-space: nowrap; }
   .drive-btn:hover { background: var(--amber-light); }
-  .admin-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.1); color: #e0d4be; border: 1px solid rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 3px; font-family: 'Source Serif 4', serif; font-size: 0.83rem; cursor: pointer; transition: all 0.2s; }
-  .admin-btn:hover { background: rgba(255,255,255,0.18); color: white; }
 
-  /* NAV */
   nav { background: var(--warm-white); border-bottom: 1.5px solid var(--border); display: flex; }
   .tab { padding: 0.9rem 1.6rem; cursor: pointer; font-size: 0.82rem; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; color: var(--ink-muted); border-bottom: 3px solid transparent; transition: all 0.2s; user-select: none; }
   .tab:hover { color: var(--ink); }
@@ -71,7 +65,6 @@
   .panel { display: none; }
   .panel.active { display: block; }
 
-  /* SCHEDULE */
   .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem; }
   .section-head h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 600; }
   .term-block { margin-bottom: 2.5rem; }
@@ -86,7 +79,6 @@
   .dt { color: var(--ink-muted); font-size: 0.83rem; white-space: nowrap; }
   .empty-state { text-align: center; padding: 3rem; color: var(--ink-muted); font-style: italic; }
 
-  /* HOMEWORK */
   .hw-progress-label { font-size: 0.82rem; color: var(--ink-muted); margin-bottom: 0.4rem; display: flex; justify-content: space-between; }
   .hw-bar { background: var(--border); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 1.5rem; }
   .hw-bar-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s ease; }
@@ -104,12 +96,9 @@
   .btn-ghost { margin-top: 1rem; padding: 0.4rem 0.9rem; border: 1.5px solid var(--border); border-radius: 3px; background: var(--warm-white); font-family: 'Source Serif 4', serif; font-size: 0.82rem; cursor: pointer; color: var(--ink-muted); }
   .btn-ghost:hover { border-color: var(--red); color: var(--red); }
 
-  /* LOADING SPINNER */
   .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--amber); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-row td { text-align: center; padding: 2rem; color: var(--ink-muted); }
 
-  /* ADMIN SCREEN */
   #screen-admin { background: var(--cream); min-height: 100vh; }
   .admin-header { background: var(--blue); color: white; padding: 1.5rem 2.5rem; display: flex; align-items: center; justify-content: space-between; }
   .admin-header h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 600; }
@@ -131,7 +120,6 @@
   .btn-save:hover { background: #b56d18; }
   .btn-delete { padding: 0.3rem 0.6rem; background: transparent; color: var(--red); border: 1px solid transparent; border-radius: 2px; font-size: 0.88rem; cursor: pointer; transition: all 0.15s; }
   .btn-delete:hover { background: var(--red-pale); border-color: var(--red); }
-  .admin-actions { padding: 0.9rem 1.4rem; border-top: 1px solid var(--border); display: flex; gap: 0.6rem; align-items: center; }
   .save-status { font-size: 0.82rem; color: var(--green); margin-left: 0.5rem; opacity: 0; transition: opacity 0.3s; }
   .save-status.show { opacity: 1; }
   .new-row td { background: #f5f9f5 !important; }
@@ -237,7 +225,7 @@
     <div class="header-right">
       <div class="user-badge"><div class="user-dot"></div><span id="user-label">Student</span></div>
       <button class="btn-outline" onclick="doLogout()">Sign out</button>
-      <a href="YOUR_GOOGLE_DRIVE_LINK_HERE" target="_blank" class="drive-btn">📁 Google Drive Resources</a>
+      <a href="https://drive.google.com/drive/folders/1I7TA33zQg6ZEDLn7bN05j1ngl6Y6Fyux?usp=drive_link" target="_blank" class="drive-btn">📁 Google Drive Resources</a>
     </div>
   </header>
   <nav>
@@ -263,14 +251,10 @@
 <!-- ADMIN PANEL -->
 <div class="screen" id="screen-admin">
   <div class="admin-header">
-    <div>
-      <h1>Admin Panel <span class="admin-badge">Tutor Only</span></h1>
-    </div>
+    <h1>Admin Panel <span class="admin-badge">Tutor Only</span></h1>
     <button class="btn-outline" onclick="showScreen('screen-gate')">← Exit Admin</button>
   </div>
   <div class="admin-main">
-
-    <!-- SCHEDULE EDITOR -->
     <div class="admin-section">
       <div class="admin-section-head">
         <h3>Schedule</h3>
@@ -281,24 +265,14 @@
         </div>
       </div>
       <table class="admin-table">
-        <thead>
-          <tr>
-            <th style="width:60px">Term</th>
-            <th style="width:60px">Week #</th>
-            <th style="width:100px">Date</th>
-            <th>Content</th>
-            <th>Homework</th>
-            <th style="width:80px">VCAA</th>
-            <th style="width:40px"></th>
-          </tr>
-        </thead>
-        <tbody id="sched-tbody">
-          <tr><td colspan="7" class="loading-row"><span class="spinner"></span> Loading…</td></tr>
-        </tbody>
+        <thead><tr>
+          <th style="width:60px">Term</th><th style="width:60px">Week #</th>
+          <th style="width:100px">Date</th><th>Content</th>
+          <th>Homework</th><th style="width:80px">VCAA</th><th style="width:40px"></th>
+        </tr></thead>
+        <tbody id="sched-tbody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-muted)"><span class="spinner"></span> Loading…</td></tr></tbody>
       </table>
     </div>
-
-    <!-- HOMEWORK EDITOR -->
     <div class="admin-section">
       <div class="admin-section-head">
         <h3>Homework Items</h3>
@@ -309,71 +283,86 @@
         </div>
       </div>
       <table class="admin-table">
-        <thead>
-          <tr>
-            <th style="width:60px">Term</th>
-            <th style="width:130px">Week Label</th>
-            <th>Task</th>
-            <th style="width:40px"></th>
-          </tr>
-        </thead>
-        <tbody id="hw-tbody">
-          <tr><td colspan="4" class="loading-row"><span class="spinner"></span> Loading…</td></tr>
-        </tbody>
+        <thead><tr>
+          <th style="width:60px">Term</th><th style="width:130px">Week Label</th>
+          <th>Task</th><th style="width:40px"></th>
+        </tr></thead>
+        <tbody id="hw-tbody"><tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--ink-muted)"><span class="spinner"></span> Loading…</td></tr></tbody>
       </table>
     </div>
-
   </div>
 </div>
 
 <script>
-// ── CONFIG — REPLACE THESE ────────────────────────────────────────────
-const SUPABASE_URL     = 'https://gdxrfbjavtuivaarzvjl.supabase.co';
+// ── CONFIG ────────────────────────────────────────────────────────────
+const SUPABASE_URL      = 'https://gdxrfbjavtuivaarzvjl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkeHJmYmphdnR1aXZhYXJ6dmpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNTAxNDUsImV4cCI6MjA5MDgyNjE0NX0.UwTbld0t0L6_tYRiiI0OsOQIkvUdnfRfxI-EXviXfTI';
-const SITE_PASSWORD    = 'methods2026';   // student gate password
-const ADMIN_PASSWORD   = 'admin1234';     // ← change this!
-const DRIVE_URL        = 'https://drive.google.com/drive/folders/1I7TA33zQg6ZEDLn7bN05j1ngl6Y6Fyux?usp=drive_link';
+const SITE_PASSWORD     = 'methods2026';
+const ADMIN_PASSWORD    = 'admin1234';
 // ─────────────────────────────────────────────────────────────────────
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 let homeworkItems = [];
-let scheduleRows = [];
 let progressMap = {};
+let schedData = [];
+let hwData = [];
 
-// ── SCREEN HELPERS ────────────────────────────────────────────────────
+// ── SCREEN HELPER ─────────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-
 function showAdminLogin() { showScreen('screen-admin-login'); }
+
+// ── STARTUP ───────────────────────────────────────────────────────────
+// Explicitly await getSession() so the auth token is ready before any
+// data fetch. onAuthStateChange was firing too early and causing the
+// "stuck on Loading" bug when returning to the page.
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session && sessionStorage.getItem('gate_passed') === '1') {
+    currentUser = session.user;
+    await enterApp();
+  }
+  // Otherwise stay on gate screen (the default .active screen)
+})();
 
 // ── GATE ──────────────────────────────────────────────────────────────
 document.getElementById('gate-pw').addEventListener('keydown', e => { if (e.key === 'Enter') checkGate(); });
-function checkGate() {
+
+async function checkGate() {
   const v = document.getElementById('gate-pw').value;
-  if (v === SITE_PASSWORD) {
-    document.getElementById('gate-err').textContent = '';
-    showScreen('screen-login');
-  } else {
+  if (v !== SITE_PASSWORD) {
     document.getElementById('gate-err').textContent = 'Incorrect password.';
     document.getElementById('gate-pw').value = '';
+    return;
+  }
+  document.getElementById('gate-err').textContent = '';
+  sessionStorage.setItem('gate_passed', '1');
+
+  // Check for an existing Supabase session — if found, skip login screen
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    await enterApp();
+  } else {
+    showScreen('screen-login');
   }
 }
 
-// ── ADMIN LOGIN ───────────────────────────────────────────────────────
+// ── ADMIN ─────────────────────────────────────────────────────────────
 document.getElementById('admin-pw').addEventListener('keydown', e => { if (e.key === 'Enter') checkAdmin(); });
+
 async function checkAdmin() {
-  const v = document.getElementById('admin-pw').value;
-  if (v === ADMIN_PASSWORD) {
-    document.getElementById('admin-login-err').textContent = '';
-    showScreen('screen-admin');
-    await loadAdminData();
-  } else {
+  if (document.getElementById('admin-pw').value !== ADMIN_PASSWORD) {
     document.getElementById('admin-login-err').textContent = 'Incorrect admin password.';
     document.getElementById('admin-pw').value = '';
+    return;
   }
+  document.getElementById('admin-login-err').textContent = '';
+  showScreen('screen-admin');
+  await loadAdminData();
 }
 
 // ── REGISTER ──────────────────────────────────────────────────────────
@@ -384,28 +373,25 @@ async function doRegister() {
   const msgEl = document.getElementById('reg-msg');
   const btn   = document.getElementById('reg-btn');
 
-  if (!name) { showMsg(msgEl, 'Please enter your name.', 'error'); return; }
-  if (!email) { showMsg(msgEl, 'Please enter your email.', 'error'); return; }
+  if (!name)         { showMsg(msgEl, 'Please enter your name.', 'error'); return; }
+  if (!email)        { showMsg(msgEl, 'Please enter your email.', 'error'); return; }
   if (pw.length < 6) { showMsg(msgEl, 'Password must be at least 6 characters.', 'error'); return; }
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Creating account…';
 
-  const { data, error } = await sb.auth.signUp({
-    email, password: pw,
-    options: { data: { display_name: name } }
-  });
+  const { error } = await sb.auth.signUp({ email, password: pw, options: { data: { display_name: name } } });
 
   btn.disabled = false;
   btn.textContent = 'Create Account';
 
   if (error) { showMsg(msgEl, error.message, 'error'); return; }
-
   showMsg(msgEl, 'Account created! Check your email to confirm, then sign in.', 'success');
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
 document.getElementById('login-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pw    = document.getElementById('login-pw').value;
@@ -426,9 +412,13 @@ async function doLogin() {
   await enterApp();
 }
 
+// ── LOGOUT ────────────────────────────────────────────────────────────
 async function doLogout() {
   await sb.auth.signOut();
   currentUser = null;
+  sessionStorage.removeItem('gate_passed');
+  document.getElementById('gate-pw').value = '';
+  document.getElementById('gate-err').textContent = '';
   showScreen('screen-gate');
 }
 
@@ -436,18 +426,10 @@ async function doLogout() {
 async function enterApp() {
   const name = currentUser.user_metadata?.display_name || currentUser.email;
   document.getElementById('user-label').textContent = name;
-  document.querySelector('.drive-btn').href = DRIVE_URL;
   showScreen('screen-app');
+  // Load both in parallel — session is guaranteed ready at this point
   await Promise.all([loadSchedule(), loadHomework()]);
 }
-
-// ── SESSION RESTORE ───────────────────────────────────────────────────
-sb.auth.onAuthStateChange(async (event, session) => {
-  if (session && !currentUser) {
-    currentUser = session.user;
-    await enterApp();
-  }
-});
 
 // ── TABS ──────────────────────────────────────────────────────────────
 function switchTab(name, el) {
@@ -457,52 +439,43 @@ function switchTab(name, el) {
   document.getElementById('panel-' + name).classList.add('active');
 }
 
-// ── SCHEDULE (student view) ───────────────────────────────────────────
+// ── SCHEDULE (student) ────────────────────────────────────────────────
 async function loadSchedule() {
   const { data, error } = await sb.from('schedule').select('*').order('sort_order');
   if (error) { document.getElementById('schedule-content').innerHTML = '<div class="empty-state">Error loading schedule.</div>'; return; }
-  scheduleRows = data;
-  renderSchedule(data);
+  renderSchedule(data || []);
 }
 
 function renderSchedule(rows) {
-  const term1 = rows.filter(r => r.term === 1);
-  const term2 = rows.filter(r => r.term === 2);
+  const t1 = rows.filter(r => r.term === 1);
+  const t2 = rows.filter(r => r.term === 2);
   let html = '';
 
-  if (term1.length) {
+  if (t1.length) {
     html += `<div class="term-block"><div class="term-label t1">Term 1</div>
     <table class="schedule-table"><thead><tr><th>Week</th><th>Content</th><th>Homework</th></tr></thead><tbody>`;
-    term1.forEach(r => {
-      html += `<tr><td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td></tr>`;
-    });
+    t1.forEach(r => { html += `<tr><td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td></tr>`; });
     html += `</tbody></table></div>`;
   }
-
-  if (term2.length) {
+  if (t2.length) {
     html += `<div class="term-block"><div class="term-label t2">Term 2</div>
     <table class="schedule-table"><thead><tr><th>Date</th><th>Week</th><th>Content</th><th>Homework</th><th>VCAA Exam</th></tr></thead><tbody>`;
-    term2.forEach(r => {
-      html += `<tr><td class="dt">${r.week_commencing||''}</td><td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td><td>${r.vcaa_exam||''}</td></tr>`;
-    });
+    t2.forEach(r => { html += `<tr><td class="dt">${r.week_commencing||''}</td><td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td><td>${r.vcaa_exam||''}</td></tr>`; });
     html += `</tbody></table></div>`;
   }
-
   if (!html) html = '<div class="empty-state">No schedule yet — check back soon.</div>';
   document.getElementById('schedule-content').innerHTML = html;
 }
 
-// ── HOMEWORK (student view) ───────────────────────────────────────────
+// ── HOMEWORK (student) ────────────────────────────────────────────────
 async function loadHomework() {
   const [itemsRes, progressRes] = await Promise.all([
     sb.from('homework_items').select('*').order('sort_order'),
     sb.from('homework_progress').select('*').eq('user_id', currentUser.id)
   ]);
-
   homeworkItems = itemsRes.data || [];
   progressMap = {};
   (progressRes.data || []).forEach(p => { progressMap[p.homework_id] = p.completed; });
-
   renderHomework();
 }
 
@@ -510,8 +483,7 @@ function renderHomework() {
   const list = document.getElementById('hw-list');
   if (!homeworkItems.length) {
     list.innerHTML = '<div class="empty-state">No homework items yet.</div>';
-    updateProgress();
-    return;
+    updateProgress(); return;
   }
   list.innerHTML = '';
   homeworkItems.forEach(item => {
@@ -519,7 +491,7 @@ function renderHomework() {
     const div = document.createElement('div');
     div.className = 'hw-item' + (done ? ' done' : '');
     div.dataset.id = item.id;
-    div.innerHTML = `<div class="hw-check">${done ? '✓' : ''}</div><div><div class="hw-text">${item.text}</div><span class="hw-tag t${item.term}">${item.week_label}</span></div>`;
+    div.innerHTML = `<div class="hw-check">${done?'✓':''}</div><div><div class="hw-text">${item.text}</div><span class="hw-tag t${item.term}">${item.week_label}</span></div>`;
     div.addEventListener('click', () => toggleHW(item.id));
     list.appendChild(div);
   });
@@ -529,12 +501,10 @@ function renderHomework() {
 async function toggleHW(id) {
   const newVal = !progressMap[id];
   progressMap[id] = newVal;
-
   const el = document.querySelector(`.hw-item[data-id="${id}"]`);
   el.classList.toggle('done', newVal);
   el.querySelector('.hw-check').textContent = newVal ? '✓' : '';
   updateProgress();
-
   await sb.from('homework_progress').upsert(
     { user_id: currentUser.id, homework_id: id, completed: newVal, updated_at: new Date().toISOString() },
     { onConflict: 'user_id,homework_id' }
@@ -543,8 +513,8 @@ async function toggleHW(id) {
 
 function updateProgress() {
   const total = homeworkItems.length;
-  const done = homeworkItems.filter(h => progressMap[h.id]).length;
-  const pct = total ? Math.round(done / total * 100) : 0;
+  const done  = homeworkItems.filter(h => progressMap[h.id]).length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
   document.getElementById('hw-fill').style.width = pct + '%';
   document.getElementById('hw-count').textContent = `${done} of ${total} complete`;
   document.getElementById('hw-pct').textContent = total ? pct + '%' : '';
@@ -568,19 +538,26 @@ async function loadAdminData() {
 }
 
 // ── ADMIN: SCHEDULE ───────────────────────────────────────────────────
-let schedData = [];
-
 function renderAdminSchedule(rows) {
   schedData = rows.map(r => ({...r}));
+  redrawSchedTable();
+}
+
+function redrawSchedTable() {
   const tbody = document.getElementById('sched-tbody');
+  const visible = schedData.filter(r => !r._deleted);
+  if (!visible.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
+    return;
+  }
   tbody.innerHTML = '';
-  schedData.forEach((r, i) => tbody.appendChild(makeSchedRow(r, i)));
-  if (!schedData.length) tbody.innerHTML = '<tr><td colspan="7" class="loading-row" style="font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
+  // Only iterate non-deleted; pass real array index for mutation
+  schedData.forEach((r, i) => { if (!r._deleted) tbody.appendChild(makeSchedRow(r, i)); });
 }
 
 function makeSchedRow(r, i) {
   const tr = document.createElement('tr');
-  tr.dataset.idx = i;
+  if (r._new) tr.classList.add('new-row');
   tr.innerHTML = `
     <td><select class="admin-select" onchange="schedData[${i}].term=parseInt(this.value)">
       <option value="1" ${r.term===1?'selected':''}>Term 1</option>
@@ -596,21 +573,13 @@ function makeSchedRow(r, i) {
 }
 
 function addScheduleRow() {
-  const i = schedData.length;
-  const newRow = { term: 2, week_number: i+1, week_commencing: '', content: '', homework: '', vcaa_exam: '', sort_order: i, _new: true };
-  schedData.push(newRow);
-  const tr = makeSchedRow(newRow, i);
-  tr.classList.add('new-row');
-  const tbody = document.getElementById('sched-tbody');
-  if (tbody.querySelector('.loading-row')) tbody.innerHTML = '';
-  tbody.appendChild(tr);
+  schedData.push({ term: 2, week_number: schedData.filter(r=>!r._deleted).length+1, week_commencing:'', content:'', homework:'', vcaa_exam:'', sort_order: schedData.length, _new: true });
+  redrawSchedTable();
 }
 
 function deleteSchedRow(i) {
   schedData[i]._deleted = true;
-  const tbody = document.getElementById('sched-tbody');
-  const rows = tbody.querySelectorAll('tr');
-  rows[i].remove();
+  redrawSchedTable();
 }
 
 async function saveSchedule() {
@@ -623,31 +592,35 @@ async function saveSchedule() {
     content: r.content || null, homework: r.homework || null,
     vcaa_exam: r.vcaa_exam || null, sort_order: i
   }));
-
-  const promises = [];
-  if (toDelete.length) promises.push(sb.from('schedule').delete().in('id', toDelete.map(r => r.id)));
-  if (toUpsert.length) promises.push(sb.from('schedule').upsert(toUpsert));
-  await Promise.all(promises);
-
+  const ops = [];
+  if (toDelete.length) ops.push(sb.from('schedule').delete().in('id', toDelete.map(r=>r.id)));
+  if (toUpsert.length) ops.push(sb.from('schedule').upsert(toUpsert));
+  await Promise.all(ops);
   statusEl.classList.add('show');
   setTimeout(() => statusEl.classList.remove('show'), 2500);
   await loadAdminData();
 }
 
 // ── ADMIN: HOMEWORK ───────────────────────────────────────────────────
-let hwData = [];
-
 function renderAdminHomework(rows) {
   hwData = rows.map(r => ({...r}));
+  redrawHwTable();
+}
+
+function redrawHwTable() {
   const tbody = document.getElementById('hw-tbody');
+  const visible = hwData.filter(r => !r._deleted);
+  if (!visible.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--ink-muted)">No items yet. Click + Add Item.</td></tr>';
+    return;
+  }
   tbody.innerHTML = '';
-  hwData.forEach((r, i) => tbody.appendChild(makeHwRow(r, i)));
-  if (!hwData.length) tbody.innerHTML = '<tr><td colspan="4" class="loading-row" style="font-style:italic;color:var(--ink-muted)">No items yet. Click + Add Item.</td></tr>';
+  hwData.forEach((r, i) => { if (!r._deleted) tbody.appendChild(makeHwRow(r, i)); });
 }
 
 function makeHwRow(r, i) {
   const tr = document.createElement('tr');
-  tr.dataset.idx = i;
+  if (r._new) tr.classList.add('new-row');
   tr.innerHTML = `
     <td><select class="admin-select" onchange="hwData[${i}].term=parseInt(this.value)">
       <option value="1" ${r.term===1?'selected':''}>Term 1</option>
@@ -660,20 +633,13 @@ function makeHwRow(r, i) {
 }
 
 function addHomeworkRow() {
-  const i = hwData.length;
-  const newRow = { id: 'hw_' + Date.now(), term: 2, week_label: '', text: '', sort_order: i, _new: true };
-  hwData.push(newRow);
-  const tr = makeHwRow(newRow, i);
-  tr.classList.add('new-row');
-  const tbody = document.getElementById('hw-tbody');
-  if (tbody.querySelector('.loading-row')) tbody.innerHTML = '';
-  tbody.appendChild(tr);
+  hwData.push({ id: 'hw_' + Date.now(), term: 2, week_label: '', text: '', sort_order: hwData.length, _new: true });
+  redrawHwTable();
 }
 
 function deleteHwRow(i) {
   hwData[i]._deleted = true;
-  const tbody = document.getElementById('hw-tbody');
-  tbody.querySelectorAll('tr')[i].remove();
+  redrawHwTable();
 }
 
 async function saveHomework() {
@@ -683,22 +649,17 @@ async function saveHomework() {
     id: r.id, term: r.term, week_label: r.week_label || null,
     text: r.text || '', sort_order: i
   }));
-
-  const promises = [];
-  if (toDelete.length) promises.push(sb.from('homework_items').delete().in('id', toDelete.map(r => r.id)));
-  if (toUpsert.length) promises.push(sb.from('homework_items').upsert(toUpsert));
-  await Promise.all(promises);
-
+  const ops = [];
+  if (toDelete.length) ops.push(sb.from('homework_items').delete().in('id', toDelete.map(r=>r.id)));
+  if (toUpsert.length) ops.push(sb.from('homework_items').upsert(toUpsert));
+  await Promise.all(ops);
   statusEl.classList.add('show');
   setTimeout(() => statusEl.classList.remove('show'), 2500);
   await loadAdminData();
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────
-function showMsg(el, text, type) {
-  el.textContent = text;
-  el.className = 'msg ' + type;
-}
+function showMsg(el, text, type) { el.textContent = text; el.className = 'msg ' + type; }
 </script>
 </body>
 </html>
