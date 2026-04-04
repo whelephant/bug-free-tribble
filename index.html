@@ -607,7 +607,17 @@ function makeSchedRow(r, i) {
 }
 
 function addScheduleRow() {
-  schedData.push({ term: 2, week_number: schedData.filter(r=>!r._deleted).length+1, week_commencing:'', content:'', homework:'', vcaa_exam:'', sort_order: schedData.length, _new: true });
+  schedData.push({
+    id: crypto?.randomUUID ? crypto.randomUUID() : 'row_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    term: 2,
+    week_number: schedData.filter(r=>!r._deleted).length+1,
+    week_commencing:'',
+    content:'',
+    homework:'',
+    vcaa_exam:'',
+    sort_order: schedData.length,
+    _new: true
+  });
   redrawSchedTable();
 }
 
@@ -617,6 +627,7 @@ function deleteSchedRow(i) {
 }
 
 async function saveSchedule() {
+  console.log('Saving schedule...');
   const statusEl = document.getElementById('sched-saved');
   const toDelete = schedData.filter(r => r._deleted && r.id);
   const toUpsert = schedData.filter(r => !r._deleted).map((r, i) => ({
@@ -626,17 +637,22 @@ async function saveSchedule() {
     content: r.content || null, homework: r.homework || null,
     vcaa_exam: r.vcaa_exam || null, sort_order: i
   }));
+  console.log('toDelete:', toDelete);
+  console.log('toUpsert:', toUpsert);
   const ops = [];
   if (toDelete.length) ops.push(sb.from('schedule').delete().in('id', toDelete.map(r=>r.id)));
   if (toUpsert.length) ops.push(sb.from('schedule').upsert(toUpsert));
   try {
-    await Promise.all(ops);
+    const results = await Promise.all(ops);
+    console.log('Save results:', results);
+    const failed = results.find(r => r?.error);
+    if (failed) throw failed.error;
     statusEl.classList.add('show');
     setTimeout(() => statusEl.classList.remove('show'), 2500);
     await loadAdminData();
   } catch (error) {
     console.error('Save failed:', error);
-    alert('Save failed: ' + error.message);
+    alert('Save failed: ' + (error?.message || error));
   }
 }
 
@@ -674,7 +690,14 @@ function makeHwRow(r, i) {
 }
 
 function addHomeworkRow() {
-  hwData.push({ term: 2, week_label: '', text: '', sort_order: hwData.length, _new: true });
+  hwData.push({
+    id: crypto?.randomUUID ? crypto.randomUUID() : 'hw_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    term: 2,
+    week_label: '',
+    text: '',
+    sort_order: hwData.length,
+    _new: true
+  });
   redrawHwTable();
 }
 
@@ -684,6 +707,7 @@ function deleteHwRow(i) {
 }
 
 async function saveHomework() {
+  console.log('Saving homework...');
   const statusEl = document.getElementById('hw-saved');
   const toDelete = hwData.filter(r => r._deleted && r.id && !r._new);
   const toUpsert = hwData.filter(r => !r._deleted).map((r, i) => ({
@@ -691,17 +715,22 @@ async function saveHomework() {
     term: r.term, week_label: r.week_label || null,
     text: r.text || '', sort_order: i
   }));
+  console.log('toDelete:', toDelete);
+  console.log('toUpsert:', toUpsert);
   const ops = [];
   if (toDelete.length) ops.push(sb.from('homework_items').delete().in('id', toDelete.map(r=>r.id)));
   if (toUpsert.length) ops.push(sb.from('homework_items').upsert(toUpsert));
   try {
-    await Promise.all(ops);
+    const results = await Promise.all(ops);
+    console.log('Save results:', results);
+    const failed = results.find(r => r?.error);
+    if (failed) throw failed.error;
     statusEl.classList.add('show');
     setTimeout(() => statusEl.classList.remove('show'), 2500);
     await loadAdminData();
   } catch (error) {
     console.error('Save failed:', error);
-    alert('Save failed: ' + error.message);
+    alert('Save failed: ' + (error?.message || error));
   }
 }
 
