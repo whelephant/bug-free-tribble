@@ -286,8 +286,8 @@
       <table class="admin-table">
         <thead><tr>
           <th style="width:60px">Term</th><th style="width:60px">Week #</th>
-          <th style="width:100px">Date</th><th>Content</th>
-          <th>Homework</th><th style="width:80px">VCAA</th><th style="width:40px"></th>
+          <th style="width:100px">Week Commencing</th><th>Content</th>
+          <th>Homework</th><th style="width:80px">VCAA Exam to be Completed</th><th style="width:120px">YouTube Link</th><th style="width:40px"></th>
         </tr></thead>
         <tbody id="sched-tbody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-muted)"><span class="spinner"></span> Loading…</td></tr></tbody>
       </table>
@@ -480,17 +480,20 @@ function renderSchedule(rows) {
     const { label, cls } = TERM_META[t];
     const hasDates = group.some(r => r.week_commencing);
     const hasVcaa  = group.some(r => r.vcaa_exam);
+    const hasYoutube = group.some(r => r.youtube_link);
     html += `<div class="term-block"><div class="term-label ${cls}">${label}</div>
     <table class="schedule-table"><thead><tr>`;
-    if (hasDates) html += `<th>Date</th>`;
+    if (hasDates) html += `<th>Week Commencing</th>`;
     html += `<th>Week</th><th>Content</th><th>Homework</th>`;
-    if (hasVcaa)  html += `<th>VCAA Exam</th>`;
+    if (hasVcaa)  html += `<th>VCAA Exam to be Completed</th>`;
+    if (hasYoutube) html += `<th>YouTube</th>`;
     html += `</tr></thead><tbody>`;
     group.forEach(r => {
       html += `<tr>`;
       if (hasDates) html += `<td class="dt">${r.week_commencing||''}</td>`;
       html += `<td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td>`;
       if (hasVcaa)  html += `<td>${r.vcaa_exam||''}</td>`;
+      if (hasYoutube) html += `<td>${r.youtube_link ? `<a href="${r.youtube_link}" target="_blank" style="display:inline-block;padding:0.3rem 0.8rem;background:var(--amber);color:white;text-decoration:none;border-radius:3px;font-size:0.85rem;font-weight:600;">Watch</a>` : ''}</td>`;
       html += `</tr>`;
     });
     html += `</tbody></table></div>`;
@@ -579,7 +582,7 @@ function redrawSchedTable() {
   const tbody = document.getElementById('sched-tbody');
   const visible = schedData.filter(r => !r._deleted);
   if (!visible.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
     return;
   }
   tbody.innerHTML = '';
@@ -602,6 +605,7 @@ function makeSchedRow(r, i) {
     <td><input class="admin-input" type="text" value="${r.content||''}" oninput="schedData[${i}].content=this.value"></td>
     <td><input class="admin-input" type="text" value="${r.homework||''}" oninput="schedData[${i}].homework=this.value"></td>
     <td><input class="admin-input" type="text" value="${r.vcaa_exam||''}" oninput="schedData[${i}].vcaa_exam=this.value" style="width:72px"></td>
+    <td><input class="admin-input" type="url" value="${r.youtube_link||''}" placeholder="https://youtube.com/..." oninput="schedData[${i}].youtube_link=this.value"></td>
     <td><button class="btn-delete" onclick="deleteSchedRow(${i})">✕</button></td>`;
   return tr;
 }
@@ -615,6 +619,7 @@ function addScheduleRow() {
     content:'',
     homework:'',
     vcaa_exam:'',
+    youtube_link:'',
     sort_order: schedData.length,
     _new: true
   });
@@ -635,7 +640,7 @@ async function saveSchedule() {
     term: r.term, week_number: r.week_number,
     week_commencing: r.week_commencing || null,
     content: r.content || null, homework: r.homework || null,
-    vcaa_exam: r.vcaa_exam || null, sort_order: i
+    vcaa_exam: r.vcaa_exam || null, youtube_link: r.youtube_link || null, sort_order: i
   }));
   console.log('toDelete:', toDelete);
   console.log('toUpsert:', toUpsert);
