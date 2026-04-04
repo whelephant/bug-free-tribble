@@ -8,37 +8,28 @@
 <!-- Times New Roman used as system font, no import needed -->
 <style>
   :root {
-    /* Pantone palette */
-    --amberlight: #e8c9b0;   /* 14-1217 Amberlight  */
-    --skyway:     #b0c4d8;   /* 14-4112 Skyway      */
-    --toffee:     #7a5230;   /* 18-1031 Toffee      */
-    --rhythmic:   #9b1b30;   /* 19-1653 Rhythmic Red*/
-    --tawny:      #7a2b3d;   /* 19-1725 Tawny Port  */
-    --blueopal:   #1b4a6b;   /* 19-4120 Blue Opal   */
-    --syrah:      #6b1e2a;   /* 19-1535 Syrah       */
-
-    /* Mapped roles */
-    --cream:      #f5ede4;          /* warm off-white from Amberlight family */
-    --warm-white: #faf3ee;
-    --ink:        #2a1a10;          /* deep warm dark */
-    --ink-light:  #4a3020;
-    --ink-muted:  #7a6050;
-    --amber:      var(--toffee);    /* primary action = Toffee brown */
-    --amber-light: #9a6840;
-    --amber-pale: #f0e0d0;
-    --green:      var(--blueopal);  /* "success/progress" = Blue Opal */
-    --green-pale: #d0e4f0;
-    --red:        var(--rhythmic);  /* danger = Rhythmic Red */
-    --red-pale:   #f5d0d5;
-    --blue:       var(--blueopal);  /* admin header */
-    --border:     #c8b8a8;
-    --shadow:     rgba(40,20,10,0.12);
+    /* Vibrant palette */
+    --cream:      #ffffff;
+    --warm-white: #f8f9ff;
+    --ink:        #0f0f1a;
+    --ink-light:  #2a2a40;
+    --ink-muted:  #6b6b88;
+    --amber:      #e63946;          /* vivid red-coral — primary action */
+    --amber-light: #ff6b6b;
+    --amber-pale: #ffe5e5;
+    --green:      #2a9d8f;          /* vivid teal — progress/success */
+    --green-pale: #d0f4f1;
+    --red:        #e63946;
+    --red-pale:   #ffe5e5;
+    --blue:       #264653;          /* deep teal — admin */
+    --border:     #e0e0f0;
+    --shadow:     rgba(10,10,40,0.10);
 
     /* Term colours */
-    --term1-bg:   var(--toffee);
-    --term2-bg:   var(--blueopal);
-    --term3-bg:   var(--tawny);
-    --term4-bg:   var(--syrah);
+    --term1-bg:   #e63946;          /* vivid red */
+    --term2-bg:   #2a9d8f;          /* vivid teal */
+    --term3-bg:   #e9c46a;          /* golden yellow */
+    --term4-bg:   #f4a261;          /* warm orange */
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--cream); color: var(--ink); font-family: 'Times New Roman', Times, serif; min-height: 100vh; }
@@ -95,8 +86,8 @@
   .term-label { color: white; font-family: 'Times New Roman', Times, serif; font-weight: 600; font-size: 0.93rem; padding: 0.5rem 1rem; border-radius: 3px 3px 0 0; }
   .term-label.t1 { background: var(--term1-bg); }
   .term-label.t2 { background: var(--term2-bg); }
-  .term-label.t3 { background: var(--term3-bg); }
-  .term-label.t4 { background: var(--term4-bg); }
+  .term-label.t3 { background: var(--term3-bg); color: #1a1a00; }
+  .term-label.t4 { background: var(--term4-bg); color: #1a0a00; }
   .schedule-table { width: 100%; border-collapse: collapse; background: var(--warm-white); border: 1.5px solid var(--border); border-top: none; font-size: 0.88rem; }
   .schedule-table th { background: #e8e0d0; padding: 0.6rem 0.85rem; text-align: left; font-size: 0.73rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); font-weight: 600; }
   .schedule-table td { padding: 0.6rem 0.85rem; border-top: 1px solid var(--border); vertical-align: top; color: var(--ink-light); }
@@ -117,10 +108,10 @@
   .hw-item.done .hw-check { background: var(--green); border-color: var(--green); color: white; }
   .hw-text { font-size: 0.9rem; color: var(--ink); }
   .hw-tag { display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 20px; margin-top: 0.3rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-  .hw-tag.t1 { background: #e8d8c8; color: var(--toffee); }
-  .hw-tag.t2 { background: var(--green-pale); color: var(--blueopal); }
-  .hw-tag.t3 { background: #f0d8de; color: var(--tawny); }
-  .hw-tag.t4 { background: #e8d0d4; color: var(--syrah); }
+  .hw-tag.t1 { background: #ffe5e5; color: #c1121f; }
+  .hw-tag.t2 { background: #d0f4f1; color: #1a7a6e; }
+  .hw-tag.t3 { background: #fdf3d0; color: #a07c00; }
+  .hw-tag.t4 { background: #fde8d8; color: #c25a1a; }
   .btn-ghost { margin-top: 1rem; padding: 0.4rem 0.9rem; border: 1.5px solid var(--border); border-radius: 3px; background: var(--warm-white); font-family: 'Times New Roman', Times, serif; font-size: 0.82rem; cursor: pointer; color: var(--ink-muted); }
   .btn-ghost:hover { border-color: var(--red); color: var(--red); }
 
@@ -128,7 +119,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   #screen-admin { background: var(--cream); min-height: 100vh; }
-  .admin-header { background: var(--syrah); color: white; padding: 1.5rem 2.5rem; display: flex; align-items: center; justify-content: space-between; }
+  .admin-header { background: var(--blue); color: white; padding: 1.5rem 2.5rem; display: flex; align-items: center; justify-content: space-between; }
   .admin-header h1 { font-family: 'Times New Roman', Times, serif; font-size: 1.6rem; font-weight: 600; }
   .admin-badge { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; background: rgba(255,255,255,0.15); padding: 0.25rem 0.6rem; border-radius: 2px; margin-left: 0.8rem; vertical-align: middle; }
   .admin-main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
