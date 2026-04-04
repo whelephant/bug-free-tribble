@@ -381,6 +381,7 @@
           <th>Content</th>
           <th>Homework</th>
           <th style="width:75px">VCAA Exam</th>
+          <th style="width:110px">YouTube Link</th>
           <th style="width:80px">Files</th>
           <th style="width:36px"></th>
         </tr></thead>
@@ -600,13 +601,15 @@ function renderSchedule(rows) {
     const { label, cls } = TERM_META[t];
     const hasDates = group.some(r => r.week_commencing);
     const hasVcaa  = group.some(r => r.vcaa_exam);
-    const colCount = (hasDates ? 1 : 0) + 3 + (hasVcaa ? 1 : 0);
+    const hasYoutube = group.some(r => r.youtube_link);
+    const colCount = (hasDates ? 1 : 0) + 3 + (hasVcaa ? 1 : 0) + (hasYoutube ? 1 : 0);
 
     html += `<div class="term-block"><div class="term-label ${cls}">${label}</div>
     <table class="schedule-table"><thead><tr>`;
     if (hasDates) html += `<th>Week Commencing</th>`;
     html += `<th>Week</th><th>Content</th><th>Homework</th>`;
     if (hasVcaa)  html += `<th>VCAA Exam</th>`;
+    if (hasYoutube) html += `<th>YouTube</th>`;
     html += `</tr></thead><tbody>`;
 
     group.forEach(r => {
@@ -615,6 +618,7 @@ function renderSchedule(rows) {
       if (hasDates) html += `<td class="dt">${r.week_commencing||''}</td>`;
       html += `<td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td>`;
       if (hasVcaa)  html += `<td>${r.vcaa_exam||''}</td>`;
+      if (hasYoutube) html += `<td>${r.youtube_link ? `<a href="${r.youtube_link}" target="_blank" style="display:inline-block;padding:0.3rem 0.8rem;background:var(--amber);color:white;text-decoration:none;border-radius:3px;font-size:0.82rem;font-weight:600;">▶ Watch</a>` : ''}</td>`;
       html += `</tr>`;
       // file drawer row (hidden until clicked)
       html += `<tr class="file-drawer-row" id="drawer-${rid}">
@@ -767,6 +771,7 @@ function makeSchedRow(r, i) {
     <td><input class="admin-input" type="text" value="${r.content||''}" oninput="schedData[${i}].content=this.value"></td>
     <td><input class="admin-input" type="text" value="${r.homework||''}" oninput="schedData[${i}].homework=this.value"></td>
     <td><input class="admin-input" type="text" value="${r.vcaa_exam||''}" oninput="schedData[${i}].vcaa_exam=this.value"></td>
+    <td><input class="admin-input" type="url" value="${r.youtube_link||''}" placeholder="https://youtube.com/..." oninput="schedData[${i}].youtube_link=this.value"></td>
     <td>${r.id && !r._new ? `<button class="btn-files" onclick="toggleAdminFiles('${r.id}', ${i})">📎 Files</button>` : '<span style="font-size:0.75rem;color:var(--ink-muted)">Save first</span>'}</td>
     <td><button class="btn-delete" onclick="deleteSchedRow(${i})">✕</button></td>`;
 
@@ -904,7 +909,7 @@ async function saveSchedule() {
     term: r.term, week_number: r.week_number,
     week_commencing: r.week_commencing || null,
     content: r.content || null, homework: r.homework || null,
-    vcaa_exam: r.vcaa_exam || null, sort_order: i
+    vcaa_exam: r.vcaa_exam || null, youtube_link: r.youtube_link || null, sort_order: i
   }));
   const ops = [];
   if (toDelete.length) ops.push(sb.from('schedule').delete().in('id', toDelete.map(r=>r.id)));
