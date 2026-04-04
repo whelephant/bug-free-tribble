@@ -4,53 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Maths Methods — Tutoring Hub</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
 <style>
   :root {
-    --cream: #faf6ee;
-    --warm-white: #fff9f0;
-    --ink: #1a1208;
-    --ink-light: #4a3f2f;
-    --ink-muted: #8a7a65;
-    --amber: #c97d20;
-    --amber-light: #f0a83a;
-    --amber-pale: #fdeec9;
-    --green: #2d6a4f;
-    --green-pale: #d8f0e6;
-    --red: #9b2226;
-    --border: #d8cdb8;
-    --shadow: rgba(60,40,10,0.10);
+    --cream: #faf6ee; --warm-white: #fff9f0;
+    --ink: #1a1208; --ink-light: #4a3f2f; --ink-muted: #8a7a65;
+    --amber: #c97d20; --amber-light: #f0a83a; --amber-pale: #fdeec9;
+    --green: #2d6a4f; --green-pale: #d8f0e6;
+    --red: #9b2226; --red-pale: #f5e0e0;
+    --blue: #1a4a7a; --blue-pale: #e0eaf5;
+    --border: #d8cdb8; --shadow: rgba(60,40,10,0.10);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--cream); color: var(--ink); font-family: 'Source Serif 4', serif; min-height: 100vh; }
 
+  /* SCREENS */
   .screen { display: none; }
   .screen.active { display: block; }
-
   .center-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
-  .auth-card {
-    background: var(--warm-white); border: 1.5px solid var(--border); border-radius: 6px;
-    padding: 3rem 3.5rem; text-align: center; max-width: 380px; width: 100%;
-    box-shadow: 0 8px 40px var(--shadow);
-  }
+
+  /* AUTH CARDS */
+  .auth-card { background: var(--warm-white); border: 1.5px solid var(--border); border-radius: 6px; padding: 3rem 3.5rem; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 8px 40px var(--shadow); }
   .logo { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--amber); }
   .sub { font-size: 0.88rem; color: var(--ink-muted); margin-top: 0.2rem; font-style: italic; }
   .auth-card h2 { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 600; margin: 1.8rem 0 1.2rem; color: var(--ink); }
-
   .field { text-align: left; margin-bottom: 0.9rem; }
-  .field label { display: block; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 0.35rem; font-weight: 600; }
+  .field label { display: block; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 0.35rem; font-weight: 600; }
   .field input { width: 100%; padding: 0.7rem 0.9rem; border: 1.5px solid var(--border); border-radius: 3px; background: var(--cream); font-family: 'Source Serif 4', serif; font-size: 0.95rem; color: var(--ink); outline: none; transition: border-color 0.2s; }
   .field input:focus { border-color: var(--amber); }
-
-  .btn-primary { width: 100%; padding: 0.8rem; background: var(--amber); color: white; border: none; border-radius: 3px; font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; letter-spacing: 0.03em; margin-top: 0.4rem; }
+  .btn-primary { width: 100%; padding: 0.8rem; background: var(--amber); color: white; border: none; border-radius: 3px; font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 0.4rem; }
   .btn-primary:hover { background: #b56d18; }
-
+  .btn-primary:disabled { background: var(--border); cursor: default; }
   .auth-switch { margin-top: 1.2rem; font-size: 0.85rem; color: var(--ink-muted); }
   .auth-switch a { color: var(--amber); cursor: pointer; text-decoration: underline; }
   .msg { font-size: 0.83rem; min-height: 1.3em; margin-top: 0.6rem; }
   .msg.error { color: var(--red); }
   .msg.success { color: var(--green); }
+  .divider { display: flex; align-items: center; gap: 0.8rem; margin: 1.2rem 0; color: var(--ink-muted); font-size: 0.8rem; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .btn-secondary { width: 100%; padding: 0.7rem; background: transparent; color: var(--ink-muted); border: 1.5px solid var(--border); border-radius: 3px; font-family: 'Source Serif 4', serif; font-size: 0.88rem; cursor: pointer; transition: all 0.2s; }
+  .btn-secondary:hover { border-color: var(--ink-muted); color: var(--ink); }
 
+  /* HEADER */
   header { background: var(--ink); color: var(--cream); padding: 2rem 2.5rem; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
   .course-label { font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--amber-light); font-weight: 600; }
   header h1 { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; line-height: 1.1; margin-top: 0.25rem; }
@@ -62,7 +58,10 @@
   .btn-outline:hover { border-color: rgba(255,255,255,0.5); color: white; }
   .drive-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--amber); color: white; text-decoration: none; padding: 0.6rem 1.1rem; border-radius: 3px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 0.88rem; transition: background 0.2s; white-space: nowrap; }
   .drive-btn:hover { background: var(--amber-light); }
+  .admin-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.1); color: #e0d4be; border: 1px solid rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 3px; font-family: 'Source Serif 4', serif; font-size: 0.83rem; cursor: pointer; transition: all 0.2s; }
+  .admin-btn:hover { background: rgba(255,255,255,0.18); color: white; }
 
+  /* NAV */
   nav { background: var(--warm-white); border-bottom: 1.5px solid var(--border); display: flex; }
   .tab { padding: 0.9rem 1.6rem; cursor: pointer; font-size: 0.82rem; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; color: var(--ink-muted); border-bottom: 3px solid transparent; transition: all 0.2s; user-select: none; }
   .tab:hover { color: var(--ink); }
@@ -72,22 +71,22 @@
   .panel { display: none; }
   .panel.active { display: block; }
 
+  /* SCHEDULE */
   .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem; }
   .section-head h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 600; }
-  .edit-toggle { padding: 0.4rem 0.9rem; border: 1.5px solid var(--border); border-radius: 3px; background: var(--warm-white); font-family: 'Source Serif 4', serif; font-size: 0.82rem; cursor: pointer; color: var(--ink-muted); transition: all 0.2s; }
-  .edit-toggle:hover, .edit-toggle.on { border-color: var(--amber); color: var(--amber); }
-
   .term-block { margin-bottom: 2.5rem; }
-  .term-label { background: var(--amber); color: white; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 0.93rem; padding: 0.5rem 1rem; border-radius: 3px 3px 0 0; }
-  .term-label.t2 { background: #2d6a4f; }
+  .term-label { color: white; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 0.93rem; padding: 0.5rem 1rem; border-radius: 3px 3px 0 0; }
+  .term-label.t1 { background: var(--amber); }
+  .term-label.t2 { background: var(--green); }
   .schedule-table { width: 100%; border-collapse: collapse; background: var(--warm-white); border: 1.5px solid var(--border); border-top: none; font-size: 0.88rem; }
   .schedule-table th { background: #e8e0d0; padding: 0.6rem 0.85rem; text-align: left; font-size: 0.73rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); font-weight: 600; }
   .schedule-table td { padding: 0.6rem 0.85rem; border-top: 1px solid var(--border); vertical-align: top; color: var(--ink-light); }
   .schedule-table tr:hover td { background: var(--cream); }
   .wk { font-weight: 600; color: var(--ink); white-space: nowrap; }
   .dt { color: var(--ink-muted); font-size: 0.83rem; white-space: nowrap; }
-  td[contenteditable="true"] { outline: none; background: #fffbf2 !important; border: 1px dashed var(--amber-light) !important; border-radius: 2px; cursor: text; }
+  .empty-state { text-align: center; padding: 3rem; color: var(--ink-muted); font-style: italic; }
 
+  /* HOMEWORK */
   .hw-progress-label { font-size: 0.82rem; color: var(--ink-muted); margin-bottom: 0.4rem; display: flex; justify-content: space-between; }
   .hw-bar { background: var(--border); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 1.5rem; }
   .hw-bar-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s ease; }
@@ -104,6 +103,39 @@
   .hw-tag.t2 { background: var(--green-pale); color: var(--green); }
   .btn-ghost { margin-top: 1rem; padding: 0.4rem 0.9rem; border: 1.5px solid var(--border); border-radius: 3px; background: var(--warm-white); font-family: 'Source Serif 4', serif; font-size: 0.82rem; cursor: pointer; color: var(--ink-muted); }
   .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+
+  /* LOADING SPINNER */
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--amber); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-row td { text-align: center; padding: 2rem; color: var(--ink-muted); }
+
+  /* ADMIN SCREEN */
+  #screen-admin { background: var(--cream); min-height: 100vh; }
+  .admin-header { background: var(--blue); color: white; padding: 1.5rem 2.5rem; display: flex; align-items: center; justify-content: space-between; }
+  .admin-header h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 600; }
+  .admin-badge { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; background: rgba(255,255,255,0.15); padding: 0.25rem 0.6rem; border-radius: 2px; margin-left: 0.8rem; vertical-align: middle; }
+  .admin-main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+  .admin-section { background: var(--warm-white); border: 1.5px solid var(--border); border-radius: 4px; margin-bottom: 2.5rem; overflow: hidden; }
+  .admin-section-head { padding: 1rem 1.4rem; border-bottom: 1.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: #ede7da; }
+  .admin-section-head h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  .admin-table th { background: #e8e0d0; padding: 0.55rem 0.8rem; text-align: left; font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-light); font-weight: 600; }
+  .admin-table td { padding: 0.5rem 0.8rem; border-top: 1px solid var(--border); vertical-align: middle; }
+  .admin-table tr:hover td { background: var(--cream); }
+  .admin-input { width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 2px; background: var(--cream); font-family: 'Source Serif 4', serif; font-size: 0.87rem; color: var(--ink); outline: none; }
+  .admin-input:focus { border-color: var(--amber); }
+  .admin-select { padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 2px; background: var(--cream); font-family: 'Source Serif 4', serif; font-size: 0.87rem; color: var(--ink); outline: none; }
+  .btn-add { padding: 0.45rem 1rem; background: var(--green); color: white; border: none; border-radius: 3px; font-family: 'Source Serif 4', serif; font-size: 0.83rem; cursor: pointer; transition: background 0.2s; }
+  .btn-add:hover { background: #245a40; }
+  .btn-save { padding: 0.45rem 1rem; background: var(--amber); color: white; border: none; border-radius: 3px; font-family: 'Source Serif 4', serif; font-size: 0.83rem; cursor: pointer; transition: background 0.2s; }
+  .btn-save:hover { background: #b56d18; }
+  .btn-delete { padding: 0.3rem 0.6rem; background: transparent; color: var(--red); border: 1px solid transparent; border-radius: 2px; font-size: 0.88rem; cursor: pointer; transition: all 0.15s; }
+  .btn-delete:hover { background: var(--red-pale); border-color: var(--red); }
+  .admin-actions { padding: 0.9rem 1.4rem; border-top: 1px solid var(--border); display: flex; gap: 0.6rem; align-items: center; }
+  .save-status { font-size: 0.82rem; color: var(--green); margin-left: 0.5rem; opacity: 0; transition: opacity 0.3s; }
+  .save-status.show { opacity: 1; }
+  .new-row td { background: #f5f9f5 !important; }
+
   footer { text-align: center; padding: 2rem; font-size: 0.78rem; color: var(--ink-muted); border-top: 1px solid var(--border); margin-top: 2rem; }
 </style>
 </head>
@@ -115,12 +147,33 @@
     <div class="auth-card">
       <div class="logo">✦ Methods</div>
       <div class="sub">Maths Methods Tutoring Hub</div>
-      <div class="field" style="margin-top:1.8rem;">
+      <h2>Welcome</h2>
+      <div class="field">
         <label>Site Password</label>
         <input type="password" id="gate-pw" placeholder="Enter site password" autocomplete="off">
       </div>
-      <button class="btn-primary" onclick="checkGate()">Continue</button>
+      <button class="btn-primary" id="gate-btn" onclick="checkGate()">Continue</button>
       <div class="msg error" id="gate-err"></div>
+      <div class="divider">or</div>
+      <button class="btn-secondary" onclick="showAdminLogin()">Admin Access</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div class="screen" id="screen-admin-login">
+  <div class="center-wrap">
+    <div class="auth-card">
+      <div class="logo">✦ Methods</div>
+      <div class="sub">Admin Access</div>
+      <h2>Admin Sign In</h2>
+      <div class="field">
+        <label>Admin Password</label>
+        <input type="password" id="admin-pw" placeholder="Admin password" autocomplete="off">
+      </div>
+      <button class="btn-primary" onclick="checkAdmin()">Enter Admin Panel</button>
+      <div class="msg error" id="admin-login-err"></div>
+      <div class="auth-switch"><a onclick="showScreen('screen-gate')">← Back</a></div>
     </div>
   </div>
 </div>
@@ -129,18 +182,18 @@
 <div class="screen" id="screen-login">
   <div class="center-wrap">
     <div class="auth-card">
-      <div class="logo">Methods 2026</div>
-      <div class="sub">Course Hub</div>
+      <div class="logo">✦ Methods</div>
+      <div class="sub">Maths Methods Tutoring Hub</div>
       <h2>Sign in to your account</h2>
       <div class="field">
-        <label>Username</label>
-        <input type="text" id="login-user" placeholder="your username" autocomplete="username">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
       </div>
       <div class="field">
         <label>Password</label>
         <input type="password" id="login-pw" placeholder="your password" autocomplete="current-password">
       </div>
-      <button class="btn-primary" onclick="doLogin()">Sign In</button>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign In</button>
       <div class="msg error" id="login-err"></div>
       <div class="auth-switch">No account? <a onclick="showScreen('screen-register')">Create one</a></div>
     </div>
@@ -151,188 +204,252 @@
 <div class="screen" id="screen-register">
   <div class="center-wrap">
     <div class="auth-card">
-      <div class="logo">Methods 2026</div>
-      <div class="sub">Course Hub</div>
+      <div class="logo">✦ Methods</div>
+      <div class="sub">Maths Methods Tutoring Hub</div>
       <h2>Create your account</h2>
       <div class="field">
-        <label>Username</label>
-        <input type="text" id="reg-user" placeholder="choose a username" autocomplete="username">
+        <label>Name</label>
+        <input type="text" id="reg-name" placeholder="your first name" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="your@email.com" autocomplete="email">
       </div>
       <div class="field">
         <label>Password</label>
-        <input type="password" id="reg-pw" placeholder="choose a password" autocomplete="new-password">
+        <input type="password" id="reg-pw" placeholder="choose a password (min 6 chars)" autocomplete="new-password">
       </div>
-      <div class="field">
-        <label>Confirm Password</label>
-        <input type="password" id="reg-pw2" placeholder="repeat password" autocomplete="new-password">
-      </div>
-      <button class="btn-primary" onclick="doRegister()">Create Account</button>
+      <button class="btn-primary" id="reg-btn" onclick="doRegister()">Create Account</button>
       <div class="msg" id="reg-msg"></div>
       <div class="auth-switch">Already have an account? <a onclick="showScreen('screen-login')">Sign in</a></div>
     </div>
   </div>
 </div>
 
-<!-- APP -->
+<!-- STUDENT APP -->
 <div class="screen" id="screen-app">
   <header>
     <div>
-      <div class="course-label">VCE ·  Methods 2026</div>
-      <h1>Course Hub</h1>
+      <div class="course-label">VCE · Maths Methods</div>
+      <h1>Tutoring Hub</h1>
       <div class="tagline">Your schedule, homework &amp; resources — all in one place.</div>
     </div>
     <div class="header-right">
       <div class="user-badge"><div class="user-dot"></div><span id="user-label">Student</span></div>
       <button class="btn-outline" onclick="doLogout()">Sign out</button>
-      <a href="https://drive.google.com/drive/folders/1I7TA33zQg6ZEDLn7bN05j1ngl6Y6Fyux?usp=drive_link" target="_blank" class="drive-btn">📁 Google Drive Resources</a>
+      <a href="YOUR_GOOGLE_DRIVE_LINK_HERE" target="_blank" class="drive-btn">📁 Drive Resources</a>
     </div>
   </header>
-
   <nav>
     <div class="tab active" onclick="switchTab('schedule',this)">Schedule</div>
     <div class="tab" onclick="switchTab('homework',this)">Homework</div>
   </nav>
-
   <main>
     <div class="panel active" id="panel-schedule">
-      <div class="section-head">
-        <h2>Course Schedule</h2>
-      </div>
-      <div class="term-block">
-        <div class="term-label">Term 1</div>
-        <table class="schedule-table">
-          <thead><tr><th>Week</th><th>Content</th><th>Homework</th></tr></thead>
-          <tbody>
-            <tr><td class="wk">Week 5</td><td>Graphing Circular Functions · Techniques of Diff</td><td>Techniques of Diff Assignment</td></tr>
-            <tr><td class="wk">Week 6</td><td>Applications of Diff</td><td>Scotch 2021 SAC 1a</td></tr>
-            <tr><td class="wk">Week 7</td><td>MGGS 2020 SAC 1 walkthrough</td><td>Scotch 2021 SAC 1b and 1c</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="term-block">
-        <div class="term-label t2">Term 2</div>
-        <table class="schedule-table">
-          <thead><tr><th>Week Commencing</th><th>Week</th><th>Content</th><th>Homework</th><th>VCAA Exam</th></tr></thead>
-          <tbody>
-            <tr><td class="dt">20/4/2026</td><td class="wk">Week 1</td><td>Scotch 2021 SAC 1 review</td><td>Scotch 2017 SAC 1a and 1b</td><td></td></tr>
-            <tr><td class="dt">27/4/2026</td><td class="wk">Week 2</td><td>IN CLASS: Scotch 2017 1c</td><td>Scotch 2018 SAC 1a and 1b</td><td></td></tr>
-            <tr><td class="dt">4/5/2026</td><td class="wk">Week 3</td><td>IN CLASS: Scotch 2018 1c</td><td>MGS 2021 Parts 1, 2, 3</td><td></td></tr>
-            <tr><td class="dt">11/5/2026</td><td class="wk">Week 4</td><td>IN CLASS: MGS 2021 Part 4</td><td>MGS 2022 Parts 1, 2, 3</td><td></td></tr>
-            <tr><td class="dt">18/5/2026</td><td class="wk">Week 5</td><td>IN CLASS: MGS 2022 Part 4</td><td>Scotch 2022 SAC 1a, 1b</td><td></td></tr>
-            <tr><td class="dt">25/5/2026</td><td class="wk">Week 6</td><td>IN CLASS: Scotch 2022 1c</td><td></td><td>2006</td></tr>
-            <tr><td class="dt">1/6/2026</td><td class="wk">Week 7</td><td>Techniques of Integration</td><td>Techniques of Int Assignment</td><td>2007</td></tr>
-            <tr><td class="dt">8/6/2026</td><td class="wk">Week 8</td><td>Applications of Integration</td><td></td><td>2008</td></tr>
-            <tr><td class="dt">15/6/2026</td><td class="wk">Week 9</td><td>Integration SAC walkthrough</td><td></td><td>2009</td></tr>
-            <tr><td class="dt">22/6/2026</td><td class="wk">Week 10</td><td>Integration Test</td><td></td><td>2010</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <div class="section-head"><h2>Course Schedule</h2></div>
+      <div id="schedule-content"><div class="empty-state"><span class="spinner"></span> Loading schedule…</div></div>
     </div>
-
     <div class="panel" id="panel-homework">
       <div class="section-head"><h2>Homework Checklist</h2></div>
-      <div class="hw-progress-label">
-        <span id="hw-count">0 of 0 complete</span>
-        <span id="hw-pct">0%</span>
-      </div>
+      <div class="hw-progress-label"><span id="hw-count">Loading…</span><span id="hw-pct"></span></div>
       <div class="hw-bar"><div class="hw-bar-fill" id="hw-fill" style="width:0%"></div></div>
-      <div class="hw-list" id="hw-list"></div>
+      <div class="hw-list" id="hw-list"><div class="empty-state"><span class="spinner"></span> Loading homework…</div></div>
       <button class="btn-ghost" onclick="resetHomework()">↺ Reset my progress</button>
     </div>
   </main>
   <footer>Maths Methods Tutoring · VCE</footer>
 </div>
 
+<!-- ADMIN PANEL -->
+<div class="screen" id="screen-admin">
+  <div class="admin-header">
+    <div>
+      <h1>Admin Panel <span class="admin-badge">Tutor Only</span></h1>
+    </div>
+    <button class="btn-outline" onclick="showScreen('screen-gate')">← Exit Admin</button>
+  </div>
+  <div class="admin-main">
+
+    <!-- SCHEDULE EDITOR -->
+    <div class="admin-section">
+      <div class="admin-section-head">
+        <h3>Schedule</h3>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <span class="save-status" id="sched-saved">✓ Saved</span>
+          <button class="btn-add" onclick="addScheduleRow()">+ Add Row</button>
+          <button class="btn-save" onclick="saveSchedule()">Save Changes</button>
+        </div>
+      </div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th style="width:60px">Term</th>
+            <th style="width:60px">Week #</th>
+            <th style="width:100px">Date</th>
+            <th>Content</th>
+            <th>Homework</th>
+            <th style="width:80px">VCAA</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody id="sched-tbody">
+          <tr><td colspan="7" class="loading-row"><span class="spinner"></span> Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- HOMEWORK EDITOR -->
+    <div class="admin-section">
+      <div class="admin-section-head">
+        <h3>Homework Items</h3>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <span class="save-status" id="hw-saved">✓ Saved</span>
+          <button class="btn-add" onclick="addHomeworkRow()">+ Add Item</button>
+          <button class="btn-save" onclick="saveHomework()">Save Changes</button>
+        </div>
+      </div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th style="width:60px">Term</th>
+            <th style="width:130px">Week Label</th>
+            <th>Task</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody id="hw-tbody">
+          <tr><td colspan="4" class="loading-row"><span class="spinner"></span> Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
 <script>
-const SITE_PASSWORD = "methods2026"; // ← Change this
+// ── CONFIG — REPLACE THESE ────────────────────────────────────────────
+const SUPABASE_URL     = 'https://gdxrfbjavtuivaarzvjl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkeHJmYmphdnR1aXZhYXJ6dmpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNTAxNDUsImV4cCI6MjA5MDgyNjE0NX0.UwTbld0t0L6_tYRiiI0OsOQIkvUdnfRfxI-EXviXfTI';
+const SITE_PASSWORD    = 'methods2026';   // student gate password
+const ADMIN_PASSWORD   = 'admin1234';     // ← change this!
+const DRIVE_URL        = 'https://drive.google.com/drive/folders/1I7TA33zQg6ZEDLn7bN05j1ngl6Y6Fyux?usp=drive_link';
+// ─────────────────────────────────────────────────────────────────────
 
-const HOMEWORK = [
-  { id:'hw1', term:'t1', week:'T1 · Week 5', text:'Techniques of Diff Assignment' },
-  { id:'hw2', term:'t1', week:'T1 · Week 6', text:'Scotch 2021 SAC 1a' },
-  { id:'hw3', term:'t1', week:'T1 · Week 7', text:'Scotch 2021 SAC 1b and 1c' },
-  { id:'hw4', term:'t2', week:'T2 · Week 1', text:'Scotch 2017 SAC 1a and 1b' },
-  { id:'hw5', term:'t2', week:'T2 · Week 2', text:'Scotch 2018 SAC 1a and 1b' },
-  { id:'hw6', term:'t2', week:'T2 · Week 3', text:'MGS 2021 Parts 1, 2, 3' },
-  { id:'hw7', term:'t2', week:'T2 · Week 4', text:'MGS 2022 Parts 1, 2, 3' },
-  { id:'hw8', term:'t2', week:'T2 · Week 5', text:'Scotch 2022 SAC 1a, 1b' },
-  { id:'hw9', term:'t2', week:'T2 · Week 7', text:'Techniques of Integration Assignment' },
-];
-
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
+let homeworkItems = [];
+let scheduleRows = [];
+let progressMap = {};
 
+// ── SCREEN HELPERS ────────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-function getUsers() { try { return JSON.parse(localStorage.getItem('hub_users') || '{}'); } catch { return {}; } }
-function saveUsers(u) { localStorage.setItem('hub_users', JSON.stringify(u)); }
-function getUserData(u) { try { return JSON.parse(localStorage.getItem('hub_ud_' + u) || '{}'); } catch { return {}; } }
-function saveUserData(u, d) { localStorage.setItem('hub_ud_' + u, JSON.stringify(d)); }
+function showAdminLogin() { showScreen('screen-admin-login'); }
 
-// Gate
-document.getElementById('gate-pw').addEventListener('keydown', e => { if(e.key==='Enter') checkGate(); });
+// ── GATE ──────────────────────────────────────────────────────────────
+document.getElementById('gate-pw').addEventListener('keydown', e => { if (e.key === 'Enter') checkGate(); });
 function checkGate() {
   const v = document.getElementById('gate-pw').value;
   if (v === SITE_PASSWORD) {
-    const saved = localStorage.getItem('hub_session');
-    if (saved && getUsers()[saved]) { currentUser = saved; enterApp(); }
-    else showScreen('screen-login');
+    document.getElementById('gate-err').textContent = '';
+    showScreen('screen-login');
   } else {
     document.getElementById('gate-err').textContent = 'Incorrect password.';
     document.getElementById('gate-pw').value = '';
   }
 }
 
-// Register
-function doRegister() {
-  const username = document.getElementById('reg-user').value.trim().toLowerCase();
-  const pw = document.getElementById('reg-pw').value;
-  const pw2 = document.getElementById('reg-pw2').value;
+// ── ADMIN LOGIN ───────────────────────────────────────────────────────
+document.getElementById('admin-pw').addEventListener('keydown', e => { if (e.key === 'Enter') checkAdmin(); });
+async function checkAdmin() {
+  const v = document.getElementById('admin-pw').value;
+  if (v === ADMIN_PASSWORD) {
+    document.getElementById('admin-login-err').textContent = '';
+    showScreen('screen-admin');
+    await loadAdminData();
+  } else {
+    document.getElementById('admin-login-err').textContent = 'Incorrect admin password.';
+    document.getElementById('admin-pw').value = '';
+  }
+}
+
+// ── REGISTER ──────────────────────────────────────────────────────────
+async function doRegister() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw    = document.getElementById('reg-pw').value;
   const msgEl = document.getElementById('reg-msg');
-  msgEl.className = 'msg error';
-  if (!username || username.length < 2) { msgEl.textContent = 'Username must be at least 2 characters.'; return; }
-  if (!pw || pw.length < 4) { msgEl.textContent = 'Password must be at least 4 characters.'; return; }
-  if (pw !== pw2) { msgEl.textContent = 'Passwords do not match.'; return; }
-  const users = getUsers();
-  if (users[username]) { msgEl.textContent = 'That username is already taken.'; return; }
-  users[username] = btoa(unescape(encodeURIComponent(pw + '::' + username)));
-  saveUsers(users);
-  msgEl.className = 'msg success';
-  msgEl.textContent = 'Account created! Signing you in…';
-  setTimeout(() => { currentUser = username; localStorage.setItem('hub_session', username); enterApp(); }, 700);
+  const btn   = document.getElementById('reg-btn');
+
+  if (!name) { showMsg(msgEl, 'Please enter your name.', 'error'); return; }
+  if (!email) { showMsg(msgEl, 'Please enter your email.', 'error'); return; }
+  if (pw.length < 6) { showMsg(msgEl, 'Password must be at least 6 characters.', 'error'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Creating account…';
+
+  const { data, error } = await sb.auth.signUp({
+    email, password: pw,
+    options: { data: { display_name: name } }
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Create Account';
+
+  if (error) { showMsg(msgEl, error.message, 'error'); return; }
+
+  showMsg(msgEl, 'Account created! Check your email to confirm, then sign in.', 'success');
 }
 
-// Login
-document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-function doLogin() {
-  const username = document.getElementById('login-user').value.trim().toLowerCase();
-  const pw = document.getElementById('login-pw').value;
+// ── LOGIN ─────────────────────────────────────────────────────────────
+document.getElementById('login-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw    = document.getElementById('login-pw').value;
   const errEl = document.getElementById('login-err');
-  const users = getUsers();
-  const expected = btoa(unescape(encodeURIComponent(pw + '::' + username)));
-  if (!users[username] || users[username] !== expected) { errEl.textContent = 'Incorrect username or password.'; return; }
+  const btn   = document.getElementById('login-btn');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Signing in…';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+
+  if (error) { showMsg(errEl, error.message, 'error'); return; }
   errEl.textContent = '';
-  currentUser = username;
-  localStorage.setItem('hub_session', username);
-  enterApp();
+  currentUser = data.user;
+  await enterApp();
 }
 
-function enterApp() {
-  document.getElementById('user-label').textContent = currentUser;
-  showScreen('screen-app');
-  initHomework();
-}
-
-function doLogout() {
+async function doLogout() {
+  await sb.auth.signOut();
   currentUser = null;
-  localStorage.removeItem('hub_session');
-  document.getElementById('gate-pw').value = '';
-  document.getElementById('gate-err').textContent = '';
   showScreen('screen-gate');
 }
 
-// Tabs
+// ── APP ENTRY ─────────────────────────────────────────────────────────
+async function enterApp() {
+  const name = currentUser.user_metadata?.display_name || currentUser.email;
+  document.getElementById('user-label').textContent = name;
+  document.querySelector('.drive-btn').href = DRIVE_URL;
+  showScreen('screen-app');
+  await Promise.all([loadSchedule(), loadHomework()]);
+}
+
+// ── SESSION RESTORE ───────────────────────────────────────────────────
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (session && !currentUser) {
+    currentUser = session.user;
+    await enterApp();
+  }
+});
+
+// ── TABS ──────────────────────────────────────────────────────────────
 function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -340,59 +457,247 @@ function switchTab(name, el) {
   document.getElementById('panel-' + name).classList.add('active');
 }
 
-// Edit schedule
-let editing = false;
-function toggleEdit() {
-  editing = !editing;
-  const btn = document.getElementById('edit-btn');
-  document.querySelectorAll('.schedule-table td').forEach(td => td.setAttribute('contenteditable', editing ? 'true' : 'false'));
-  btn.textContent = editing ? '✓ Done Editing' : '✎ Edit Schedule';
-  btn.classList.toggle('on', editing);
+// ── SCHEDULE (student view) ───────────────────────────────────────────
+async function loadSchedule() {
+  const { data, error } = await sb.from('schedule').select('*').order('sort_order');
+  if (error) { document.getElementById('schedule-content').innerHTML = '<div class="empty-state">Error loading schedule.</div>'; return; }
+  scheduleRows = data;
+  renderSchedule(data);
 }
 
-// Homework (per-user)
-function getChecked() { return getUserData(currentUser).checked || {}; }
-function saveChecked(checked) { const d = getUserData(currentUser); d.checked = checked; saveUserData(currentUser, d); }
+function renderSchedule(rows) {
+  const term1 = rows.filter(r => r.term === 1);
+  const term2 = rows.filter(r => r.term === 2);
+  let html = '';
 
-function initHomework() {
+  if (term1.length) {
+    html += `<div class="term-block"><div class="term-label t1">Term 1</div>
+    <table class="schedule-table"><thead><tr><th>Week</th><th>Content</th><th>Homework</th></tr></thead><tbody>`;
+    term1.forEach(r => {
+      html += `<tr><td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  if (term2.length) {
+    html += `<div class="term-block"><div class="term-label t2">Term 2</div>
+    <table class="schedule-table"><thead><tr><th>Date</th><th>Week</th><th>Content</th><th>Homework</th><th>VCAA Exam</th></tr></thead><tbody>`;
+    term2.forEach(r => {
+      html += `<tr><td class="dt">${r.week_commencing||''}</td><td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td><td>${r.vcaa_exam||''}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  if (!html) html = '<div class="empty-state">No schedule yet — check back soon.</div>';
+  document.getElementById('schedule-content').innerHTML = html;
+}
+
+// ── HOMEWORK (student view) ───────────────────────────────────────────
+async function loadHomework() {
+  const [itemsRes, progressRes] = await Promise.all([
+    sb.from('homework_items').select('*').order('sort_order'),
+    sb.from('homework_progress').select('*').eq('user_id', currentUser.id)
+  ]);
+
+  homeworkItems = itemsRes.data || [];
+  progressMap = {};
+  (progressRes.data || []).forEach(p => { progressMap[p.homework_id] = p.completed; });
+
+  renderHomework();
+}
+
+function renderHomework() {
   const list = document.getElementById('hw-list');
-  const checked = getChecked();
+  if (!homeworkItems.length) {
+    list.innerHTML = '<div class="empty-state">No homework items yet.</div>';
+    updateProgress();
+    return;
+  }
   list.innerHTML = '';
-  HOMEWORK.forEach(item => {
-    const done = !!checked[item.id];
+  homeworkItems.forEach(item => {
+    const done = !!progressMap[item.id];
     const div = document.createElement('div');
     div.className = 'hw-item' + (done ? ' done' : '');
     div.dataset.id = item.id;
-    div.innerHTML = `<div class="hw-check">${done ? '✓' : ''}</div><div><div class="hw-text">${item.text}</div><span class="hw-tag ${item.term}">${item.week}</span></div>`;
+    div.innerHTML = `<div class="hw-check">${done ? '✓' : ''}</div><div><div class="hw-text">${item.text}</div><span class="hw-tag t${item.term}">${item.week_label}</span></div>`;
     div.addEventListener('click', () => toggleHW(item.id));
     list.appendChild(div);
   });
   updateProgress();
 }
 
-function toggleHW(id) {
-  const checked = getChecked();
-  checked[id] = !checked[id];
-  saveChecked(checked);
+async function toggleHW(id) {
+  const newVal = !progressMap[id];
+  progressMap[id] = newVal;
+
   const el = document.querySelector(`.hw-item[data-id="${id}"]`);
-  const done = checked[id];
-  el.classList.toggle('done', done);
-  el.querySelector('.hw-check').textContent = done ? '✓' : '';
+  el.classList.toggle('done', newVal);
+  el.querySelector('.hw-check').textContent = newVal ? '✓' : '';
   updateProgress();
+
+  await sb.from('homework_progress').upsert(
+    { user_id: currentUser.id, homework_id: id, completed: newVal, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,homework_id' }
+  );
 }
 
 function updateProgress() {
-  const checked = getChecked();
-  const total = HOMEWORK.length;
-  const done = HOMEWORK.filter(h => checked[h.id]).length;
+  const total = homeworkItems.length;
+  const done = homeworkItems.filter(h => progressMap[h.id]).length;
   const pct = total ? Math.round(done / total * 100) : 0;
   document.getElementById('hw-fill').style.width = pct + '%';
   document.getElementById('hw-count').textContent = `${done} of ${total} complete`;
-  document.getElementById('hw-pct').textContent = pct + '%';
+  document.getElementById('hw-pct').textContent = total ? pct + '%' : '';
 }
 
-function resetHomework() {
-  if (confirm('Reset your homework progress?')) { saveChecked({}); initHomework(); }
+async function resetHomework() {
+  if (!confirm('Reset all your homework progress?')) return;
+  homeworkItems.forEach(h => { progressMap[h.id] = false; });
+  await sb.from('homework_progress').delete().eq('user_id', currentUser.id);
+  renderHomework();
+}
+
+// ── ADMIN: LOAD ───────────────────────────────────────────────────────
+async function loadAdminData() {
+  const [schedRes, hwRes] = await Promise.all([
+    sb.from('schedule').select('*').order('sort_order'),
+    sb.from('homework_items').select('*').order('sort_order')
+  ]);
+  renderAdminSchedule(schedRes.data || []);
+  renderAdminHomework(hwRes.data || []);
+}
+
+// ── ADMIN: SCHEDULE ───────────────────────────────────────────────────
+let schedData = [];
+
+function renderAdminSchedule(rows) {
+  schedData = rows.map(r => ({...r}));
+  const tbody = document.getElementById('sched-tbody');
+  tbody.innerHTML = '';
+  schedData.forEach((r, i) => tbody.appendChild(makeSchedRow(r, i)));
+  if (!schedData.length) tbody.innerHTML = '<tr><td colspan="7" class="loading-row" style="font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
+}
+
+function makeSchedRow(r, i) {
+  const tr = document.createElement('tr');
+  tr.dataset.idx = i;
+  tr.innerHTML = `
+    <td><select class="admin-select" onchange="schedData[${i}].term=parseInt(this.value)">
+      <option value="1" ${r.term===1?'selected':''}>Term 1</option>
+      <option value="2" ${r.term===2?'selected':''}>Term 2</option>
+    </select></td>
+    <td><input class="admin-input" type="number" value="${r.week_number||''}" onchange="schedData[${i}].week_number=parseInt(this.value)||0" style="width:56px"></td>
+    <td><input class="admin-input" type="text" value="${r.week_commencing||''}" placeholder="d/m/yyyy" onchange="schedData[${i}].week_commencing=this.value"></td>
+    <td><input class="admin-input" type="text" value="${r.content||''}" onchange="schedData[${i}].content=this.value"></td>
+    <td><input class="admin-input" type="text" value="${r.homework||''}" onchange="schedData[${i}].homework=this.value"></td>
+    <td><input class="admin-input" type="text" value="${r.vcaa_exam||''}" onchange="schedData[${i}].vcaa_exam=this.value" style="width:72px"></td>
+    <td><button class="btn-delete" onclick="deleteSchedRow(${i})">✕</button></td>`;
+  return tr;
+}
+
+function addScheduleRow() {
+  const i = schedData.length;
+  const newRow = { term: 2, week_number: i+1, week_commencing: '', content: '', homework: '', vcaa_exam: '', sort_order: i, _new: true };
+  schedData.push(newRow);
+  const tr = makeSchedRow(newRow, i);
+  tr.classList.add('new-row');
+  const tbody = document.getElementById('sched-tbody');
+  if (tbody.querySelector('.loading-row')) tbody.innerHTML = '';
+  tbody.appendChild(tr);
+}
+
+function deleteSchedRow(i) {
+  schedData[i]._deleted = true;
+  const tbody = document.getElementById('sched-tbody');
+  const rows = tbody.querySelectorAll('tr');
+  rows[i].remove();
+}
+
+async function saveSchedule() {
+  const statusEl = document.getElementById('sched-saved');
+  const toDelete = schedData.filter(r => r._deleted && r.id);
+  const toUpsert = schedData.filter(r => !r._deleted).map((r, i) => ({
+    ...(r.id ? { id: r.id } : {}),
+    term: r.term, week_number: r.week_number,
+    week_commencing: r.week_commencing || null,
+    content: r.content || null, homework: r.homework || null,
+    vcaa_exam: r.vcaa_exam || null, sort_order: i
+  }));
+
+  const promises = [];
+  if (toDelete.length) promises.push(sb.from('schedule').delete().in('id', toDelete.map(r => r.id)));
+  if (toUpsert.length) promises.push(sb.from('schedule').upsert(toUpsert));
+  await Promise.all(promises);
+
+  statusEl.classList.add('show');
+  setTimeout(() => statusEl.classList.remove('show'), 2500);
+  await loadAdminData();
+}
+
+// ── ADMIN: HOMEWORK ───────────────────────────────────────────────────
+let hwData = [];
+
+function renderAdminHomework(rows) {
+  hwData = rows.map(r => ({...r}));
+  const tbody = document.getElementById('hw-tbody');
+  tbody.innerHTML = '';
+  hwData.forEach((r, i) => tbody.appendChild(makeHwRow(r, i)));
+  if (!hwData.length) tbody.innerHTML = '<tr><td colspan="4" class="loading-row" style="font-style:italic;color:var(--ink-muted)">No items yet. Click + Add Item.</td></tr>';
+}
+
+function makeHwRow(r, i) {
+  const tr = document.createElement('tr');
+  tr.dataset.idx = i;
+  tr.innerHTML = `
+    <td><select class="admin-select" onchange="hwData[${i}].term=parseInt(this.value)">
+      <option value="1" ${r.term===1?'selected':''}>Term 1</option>
+      <option value="2" ${r.term===2?'selected':''}>Term 2</option>
+    </select></td>
+    <td><input class="admin-input" type="text" value="${r.week_label||''}" placeholder="T2 · Week 3" onchange="hwData[${i}].week_label=this.value"></td>
+    <td><input class="admin-input" type="text" value="${r.text||''}" onchange="hwData[${i}].text=this.value"></td>
+    <td><button class="btn-delete" onclick="deleteHwRow(${i})">✕</button></td>`;
+  return tr;
+}
+
+function addHomeworkRow() {
+  const i = hwData.length;
+  const newRow = { id: 'hw_' + Date.now(), term: 2, week_label: '', text: '', sort_order: i, _new: true };
+  hwData.push(newRow);
+  const tr = makeHwRow(newRow, i);
+  tr.classList.add('new-row');
+  const tbody = document.getElementById('hw-tbody');
+  if (tbody.querySelector('.loading-row')) tbody.innerHTML = '';
+  tbody.appendChild(tr);
+}
+
+function deleteHwRow(i) {
+  hwData[i]._deleted = true;
+  const tbody = document.getElementById('hw-tbody');
+  tbody.querySelectorAll('tr')[i].remove();
+}
+
+async function saveHomework() {
+  const statusEl = document.getElementById('hw-saved');
+  const toDelete = hwData.filter(r => r._deleted && r.id && !r._new);
+  const toUpsert = hwData.filter(r => !r._deleted).map((r, i) => ({
+    id: r.id, term: r.term, week_label: r.week_label || null,
+    text: r.text || '', sort_order: i
+  }));
+
+  const promises = [];
+  if (toDelete.length) promises.push(sb.from('homework_items').delete().in('id', toDelete.map(r => r.id)));
+  if (toUpsert.length) promises.push(sb.from('homework_items').upsert(toUpsert));
+  await Promise.all(promises);
+
+  statusEl.classList.add('show');
+  setTimeout(() => statusEl.classList.remove('show'), 2500);
+  await loadAdminData();
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+function showMsg(el, text, type) {
+  el.textContent = text;
+  el.className = 'msg ' + type;
 }
 </script>
 </body>
