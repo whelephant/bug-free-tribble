@@ -12,17 +12,17 @@
     --ink:        #0f0f1a;
     --ink-light:  #2a2a40;
     --ink-muted:  #6b6b88;
-    --amber:      #e63946;
-    --amber-light: #ff6b6b;
-    --amber-pale: #ffe5e5;
+    --amber:      #A6192E;
+    --amber-light: #C41E3A;
+    --amber-pale: #F0E5E7;
     --green:      #2a9d8f;
     --green-pale: #d0f4f1;
-    --red:        #e63946;
-    --red-pale:   #ffe5e5;
+    --red:        #A6192E;
+    --red-pale:   #F0E5E7;
     --blue:       #264653;
     --border:     #e0e0f0;
     --shadow:     rgba(10,10,40,0.10);
-    --term1-bg:   #e63946;
+    --term1-bg:   #A6192E;
     --term2-bg:   #2a9d8f;
     --term3-bg:   #e9c46a;
     --term4-bg:   #f4a261;
@@ -125,7 +125,23 @@
   .wk { font-weight: 600; color: var(--ink); white-space: nowrap; }
   .dt { color: var(--ink-muted); font-size: 0.83rem; white-space: nowrap; }
   .empty-state { text-align: center; padding: 3rem; color: var(--ink-muted); font-style: italic; }
-  .week-note { margin-top: 0.35rem; color: var(--ink-muted); font-size: 0.82rem; line-height: 1.4; font-style: italic; }
+  .week-note { 
+    margin-top: 1rem; 
+    background: white; 
+    border: 1.5px solid var(--border); 
+    border-radius: 4px; 
+    padding: 0.8rem 1rem; 
+    font-size: 0.82rem; 
+    line-height: 1.5; 
+    color: var(--ink);
+  }
+  .week-note::before {
+    content: '';
+  }
+  .week-note strong { color: var(--ink); font-weight: 600; }
+  .week-note em { color: var(--ink-muted); }
+  .week-note a { color: var(--amber); text-decoration: none; border-bottom: 1px solid var(--amber); }
+  .week-note a:hover { background: var(--amber-pale); }
 
   /* HOMEWORK */
   .hw-progress-label { font-size: 0.82rem; color: var(--ink-muted); margin-bottom: 0.4rem; display: flex; justify-content: space-between; }
@@ -140,7 +156,7 @@
   .hw-item.done .hw-check { background: var(--green); border-color: var(--green); color: white; }
   .hw-text { font-size: 0.9rem; color: var(--ink); }
   .hw-tag { display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 20px; margin-top: 0.3rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-  .hw-tag.t1 { background: #ffe5e5; color: #c1121f; }
+  .hw-tag.t1 { background: #F0E5E7; color: #A6192E; }
   .hw-tag.t2 { background: #d0f4f1; color: #1a7a6e; }
   .hw-tag.t3 { background: #fdf3d0; color: #a07c00; }
   .hw-tag.t4 { background: #fde8d8; color: #c25a1a; }
@@ -707,7 +723,7 @@ async function toggleDrawer(rowId, colCount) {
 
   const files = await loadRowFiles(rowId);
   const row = currentScheduleRows.find(r => String(r.id) === String(rowId));
-  const notesHtml = row?.notes ? `<div class="week-note"><strong>Notes</strong><br>${formatNotes(row.notes)}</div>` : '';
+  const notesHtml = row?.notes ? `<div class="week-note"><strong>Class Notes</strong><br>${formatNotes(row.notes)}</div>` : '';
   if (!files.length) {
     inner.innerHTML = '<span class="file-drawer-empty">No files uploaded for this week yet.</span>' + notesHtml;
     return;
@@ -809,6 +825,8 @@ function redrawSchedTable() {
 function makeSchedRow(r, i) {
   const tr = document.createElement('tr');
   if (r._new) tr.classList.add('new-row');
+  const visibleIndex = schedData.filter((row, idx) => !row._deleted && idx <= i).length - 1;
+  const visibleTotal = schedData.filter(row => !row._deleted).length;
   tr.innerHTML = `
     <td><select class="admin-select" onchange="schedData[${i}].term=parseInt(this.value)">
       <option value="1" ${r.term===1?'selected':''}>Term 1</option>
@@ -824,14 +842,18 @@ function makeSchedRow(r, i) {
     <td><input class="admin-input" type="text" value="${r.vcaa_exam||''}" oninput="schedData[${i}].vcaa_exam=this.value"></td>
     <td><input class="admin-input" type="url" value="${r.youtube_link||''}" placeholder="https://youtube.com/..." oninput="schedData[${i}].youtube_link=this.value"></td>
     <td>${r.id && !r._new ? `<button class="btn-files" onclick="toggleAdminFiles('${r.id}', ${i})">📎 Files</button>` : '<span style="font-size:0.75rem;color:var(--ink-muted)">Save first</span>'}</td>
-    <td><button class="btn-delete" onclick="deleteSchedRow(${i})">✕</button></td>`;
+    <td style="display:flex;gap:0.3rem;align-items:center;">
+      ${visibleIndex > 0 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveSchedRow(${i},-1)" title="Move up">▲</button>` : '<span style="width:1.8rem"></span>'}
+      ${visibleIndex < visibleTotal - 1 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveSchedRow(${i},1)" title="Move down">▼</button>` : '<span style="width:1.8rem"></span>'}
+      <button class="btn-delete" onclick="deleteSchedRow(${i})">✕</button>
+    </td>`;
 
   // Append the file panel row right after
   if (r.id && !r._new) {
     const fileRow = document.createElement('tr');
     fileRow.className = 'admin-file-row';
     fileRow.id = `admin-file-row-${r.id}`;
-    fileRow.innerHTML = `<td colspan="10"><div class="admin-file-panel" id="admin-file-panel-${r.id}"></div></td>`;
+    fileRow.innerHTML = `<td colspan="11"><div class="admin-file-panel" id="admin-file-panel-${r.id}"></div></td>`;
     // We'll append it after the main row outside this function
     tr._fileRow = fileRow;
   }
@@ -950,6 +972,24 @@ function addScheduleRow() {
 function deleteSchedRow(i) {
   schedData[i]._deleted = true;
   redrawSchedTable();
+}
+
+function moveSchedRow(i, direction) {
+  // Find the indices of visible (non-deleted) rows around position i
+  const visibleIndices = schedData.map((r, idx) => !r._deleted ? idx : null).filter(idx => idx !== null);
+  const currentPos = visibleIndices.indexOf(i);
+  
+  if (direction === -1 && currentPos > 0) {
+    // Move up: swap with previous visible row
+    const swapIdx = visibleIndices[currentPos - 1];
+    [schedData[i], schedData[swapIdx]] = [schedData[swapIdx], schedData[i]];
+    redrawSchedTable();
+  } else if (direction === 1 && currentPos < visibleIndices.length - 1) {
+    // Move down: swap with next visible row
+    const swapIdx = visibleIndices[currentPos + 1];
+    [schedData[i], schedData[swapIdx]] = [schedData[swapIdx], schedData[i]];
+    redrawSchedTable();
+  }
 }
 
 async function saveSchedule() {
