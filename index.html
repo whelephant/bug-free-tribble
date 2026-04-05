@@ -974,6 +974,7 @@ async function saveHomework() {
   const statusEl = document.getElementById('hw-saved');
   const toDelete  = hwData.filter(r => r._deleted && r.id && !r._new);
   const toInsert  = hwData.filter(r => !r._deleted && r._new).map((r, i) => ({
+    id: generateUUID(),
     term: r.term, week_label: r.week_label || null, text: r.text || '', sort_order: i
   }));
   const toUpdate  = hwData.filter(r => !r._deleted && !r._new && r.id).map((r, i) => ({
@@ -1002,6 +1003,14 @@ async function saveHomework() {
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 function showMsg(el, text, type) { el.textContent = text; el.className = 'msg ' + type; }
 </script>
 </body>
