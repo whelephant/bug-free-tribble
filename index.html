@@ -947,6 +947,8 @@ function redrawHwTable() {
 function makeHwRow(r, i) {
   const tr = document.createElement('tr');
   if (r._new) tr.classList.add('new-row');
+  const visibleIndex = hwData.filter((row, idx) => !row._deleted && idx <= i).length - 1;
+  const visibleTotal = hwData.filter(row => !row._deleted).length;
   tr.innerHTML = `
     <td><select class="admin-select" onchange="hwData[${i}].term=parseInt(this.value)">
       <option value="1" ${r.term===1?'selected':''}>Term 1</option>
@@ -956,7 +958,11 @@ function makeHwRow(r, i) {
     </select></td>
     <td><input class="admin-input" type="text" value="${r.week_label||''}" placeholder="T2 · Week 3" oninput="hwData[${i}].week_label=this.value"></td>
     <td><input class="admin-input" type="text" value="${r.text||''}" oninput="hwData[${i}].text=this.value"></td>
-    <td><button class="btn-delete" onclick="deleteHwRow(${i})">✕</button></td>`;
+    <td style="display:flex;gap:0.3rem;align-items:center;">
+      ${visibleIndex > 0 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveHwRow(${i},-1)" title="Move up">▲</button>` : '<span style="width:1.8rem"></span>'}
+      ${visibleIndex < visibleTotal - 1 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveHwRow(${i},1)" title="Move down">▼</button>` : '<span style="width:1.8rem"></span>'}
+      <button class="btn-delete" onclick="deleteHwRow(${i})">✕</button>
+    </td>`;
   return tr;
 }
 
@@ -968,6 +974,24 @@ function addHomeworkRow() {
 function deleteHwRow(i) {
   hwData[i]._deleted = true;
   redrawHwTable();
+}
+
+function moveHwRow(i, direction) {
+  // Find the indices of visible (non-deleted) rows around position i
+  const visibleIndices = hwData.map((r, idx) => !r._deleted ? idx : null).filter(idx => idx !== null);
+  const currentPos = visibleIndices.indexOf(i);
+  
+  if (direction === -1 && currentPos > 0) {
+    // Move up: swap with previous visible row
+    const swapIdx = visibleIndices[currentPos - 1];
+    [hwData[i], hwData[swapIdx]] = [hwData[swapIdx], hwData[i]];
+    redrawHwTable();
+  } else if (direction === 1 && currentPos < visibleIndices.length - 1) {
+    // Move down: swap with next visible row
+    const swapIdx = visibleIndices[currentPos + 1];
+    [hwData[i], hwData[swapIdx]] = [hwData[swapIdx], hwData[i]];
+    redrawHwTable();
+  }
 }
 
 async function saveHomework() {
