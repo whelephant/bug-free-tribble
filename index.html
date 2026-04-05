@@ -961,7 +961,7 @@ function makeHwRow(r, i) {
 }
 
 function addHomeworkRow() {
-  hwData.push({ id: null, term: 2, week_label: '', text: '', sort_order: hwData.length, _new: true });
+  hwData.push({ id: crypto.randomUUID(), term: 2, week_label: '', text: '', sort_order: hwData.length, _new: true });
   redrawHwTable();
 }
 
@@ -974,7 +974,7 @@ async function saveHomework() {
   const statusEl = document.getElementById('hw-saved');
   const toDelete = hwData.filter(r => r._deleted && r.id && !r._new);
   const toUpsert = hwData.filter(r => !r._deleted).map((r, i) => ({
-    ...(r.id && !r._new ? { id: r.id } : {}),
+    ...(r.id ? { id: r.id } : {}),
     term: r.term, week_label: r.week_label || null,
     text: r.text || '', sort_order: i
   }));
