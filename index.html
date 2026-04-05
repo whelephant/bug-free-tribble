@@ -125,6 +125,7 @@
   .wk { font-weight: 600; color: var(--ink); white-space: nowrap; }
   .dt { color: var(--ink-muted); font-size: 0.83rem; white-space: nowrap; }
   .empty-state { text-align: center; padding: 3rem; color: var(--ink-muted); font-style: italic; }
+  .week-note { margin-top: 0.35rem; color: var(--ink-muted); font-size: 0.82rem; line-height: 1.4; font-style: italic; }
 
   /* HOMEWORK */
   .hw-progress-label { font-size: 0.82rem; color: var(--ink-muted); margin-bottom: 0.4rem; display: flex; justify-content: space-between; }
@@ -191,8 +192,9 @@
   .admin-table th { background: #e8e8f8; padding: 0.55rem 0.8rem; text-align: left; font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-light); font-weight: 600; }
   .admin-table td { padding: 0.5rem 0.8rem; border-top: 1px solid var(--border); vertical-align: middle; }
   .admin-table tr:hover td { background: #f8f8ff; }
-  .admin-input { width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 2px; background: var(--cream); font-family: 'Times New Roman', Times, serif; font-size: 0.87rem; color: var(--ink); outline: none; }
-  .admin-input:focus { border-color: var(--amber); }
+  .admin-input, .admin-textarea { width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 2px; background: var(--cream); font-family: 'Times New Roman', Times, serif; font-size: 0.87rem; color: var(--ink); outline: none; }
+  .admin-input:focus, .admin-textarea:focus { border-color: var(--amber); }
+  .admin-textarea { min-height: 4.5rem; resize: vertical; line-height: 1.4; }
   .admin-select { padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 2px; background: var(--cream); font-family: 'Times New Roman', Times, serif; font-size: 0.87rem; color: var(--ink); outline: none; }
   .btn-add { padding: 0.45rem 1rem; background: var(--green); color: white; border: none; border-radius: 3px; font-family: 'Times New Roman', Times, serif; font-size: 0.83rem; cursor: pointer; transition: background 0.2s; }
   .btn-add:hover { background: #1f7a6e; }
@@ -354,7 +356,7 @@
     <span class="modal-title" id="modal-title">File</span>
     <button class="modal-close" onclick="closeModalDirect()">✕</button>
   </div>
-  <iframe class="modal-frame" id="modal-frame" src=""></iframe>
+  <iframe class="modal-frame" id="modal-frame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>
 </div>
 
 <!-- ADMIN PANEL -->
@@ -380,13 +382,14 @@
           <th style="width:95px">Week Commencing</th>
           <th>Content</th>
           <th>Homework</th>
+          <th>Notes</th>
           <th style="width:75px">VCAA Exam</th>
           <th style="width:110px">YouTube Link</th>
           <th style="width:80px">Files</th>
           <th style="width:36px"></th>
         </tr></thead>
         <tbody id="sched-tbody">
-          <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--ink-muted)"><span class="spinner"></span> Loading…</td></tr>
+          <tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--ink-muted)"><span class="spinner"></span> Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -430,6 +433,7 @@ let homeworkItems = [];
 let progressMap = {};
 let schedData = [];
 let hwData = [];
+let currentScheduleRows = [];
 
 // ── SCREEN HELPER ─────────────────────────────────────────────────────
 function showScreen(id) {
@@ -566,6 +570,49 @@ function openModal(url, name) {
   document.getElementById('file-modal').classList.add('open');
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatNotes(text) {
+  if (!text) return '';
+  let safe = escapeHtml(text);
+  safe = safe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer noopener">$1</a>');
+  safe = safe.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+  safe = safe.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
+  return safe.replace(/\n/g, '<br>');
+}
+
+function getYoutubeEmbed(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes('youtu.be')) {
+      const id = parsed.pathname.slice(1);
+      return `https://www.youtube.com/embed/${id}?rel=0`;
+    }
+    if (parsed.hostname.includes('youtube.com')) {
+      const params = new URLSearchParams(parsed.search);
+      const videoId = params.get('v');
+      if (videoId) return `https://www.youtube.com/embed/${videoId}?rel=0`;
+      if (parsed.pathname.startsWith('/embed/')) return `${parsed.origin}${parsed.pathname}?rel=0`;
+    }
+  } catch (err) {
+    console.warn('Invalid YouTube URL', err);
+  }
+  return url;
+}
+
+function openVideo(event, url, title) {
+  event.stopPropagation();
+  if (!url) return;
+  openModal(getYoutubeEmbed(url), title);
+}
+
 function closeModal(e) {
   if (e.target === document.getElementById('file-modal')) closeModalDirect();
 }
@@ -588,7 +635,8 @@ async function loadRowFiles(rowId) {
 async function loadSchedule() {
   const { data, error } = await sb.from('schedule').select('*').order('sort_order');
   if (error) { document.getElementById('schedule-content').innerHTML = '<div class="empty-state">Error loading schedule.</div>'; return; }
-  renderSchedule(data || []);
+  currentScheduleRows = data || [];
+  renderSchedule(currentScheduleRows);
 }
 
 const TERM_META = { 1:{label:'Term 1',cls:'t1'}, 2:{label:'Term 2',cls:'t2'}, 3:{label:'Term 3',cls:'t3'}, 4:{label:'Term 4',cls:'t4'} };
@@ -609,7 +657,7 @@ function renderSchedule(rows) {
     if (hasDates) html += `<th>Week Commencing</th>`;
     html += `<th>Week</th><th>Content</th><th>Homework</th>`;
     if (hasVcaa)  html += `<th>VCAA Exam</th>`;
-    if (hasYoutube) html += `<th>YouTube</th>`;
+    if (hasYoutube) html += `<th>Recording</th>`;
     html += `</tr></thead><tbody>`;
 
     group.forEach(r => {
@@ -618,7 +666,7 @@ function renderSchedule(rows) {
       if (hasDates) html += `<td class="dt">${r.week_commencing||''}</td>`;
       html += `<td class="wk">Week ${r.week_number}</td><td>${r.content||''}</td><td>${r.homework||''}</td>`;
       if (hasVcaa)  html += `<td>${r.vcaa_exam||''}</td>`;
-      if (hasYoutube) html += `<td>${r.youtube_link ? `<a href="${r.youtube_link}" target="_blank" style="display:inline-block;padding:0.3rem 0.8rem;background:var(--amber);color:white;text-decoration:none;border-radius:3px;font-size:0.82rem;font-weight:600;">▶ Watch</a>` : ''}</td>`;
+      if (hasYoutube) html += `<td>${r.youtube_link ? `<button class="btn-files" onclick="openVideo(event, '${r.youtube_link}', 'Lesson video')">▶ Watch</button>` : ''}</td>`;
       html += `</tr>`;
       // file drawer row (hidden until clicked)
       html += `<tr class="file-drawer-row" id="drawer-${rid}">
@@ -658,8 +706,10 @@ async function toggleDrawer(rowId, colCount) {
   inner.innerHTML = '<span class="file-drawer-loading"><span class="spinner"></span> Loading files…</span>';
 
   const files = await loadRowFiles(rowId);
+  const row = currentScheduleRows.find(r => String(r.id) === String(rowId));
+  const notesHtml = row?.notes ? `<div class="week-note"><strong>Notes</strong><br>${formatNotes(row.notes)}</div>` : '';
   if (!files.length) {
-    inner.innerHTML = '<span class="file-drawer-empty">No files uploaded for this week yet.</span>';
+    inner.innerHTML = '<span class="file-drawer-empty">No files uploaded for this week yet.</span>' + notesHtml;
     return;
   }
 
@@ -669,7 +719,7 @@ async function toggleDrawer(rowId, colCount) {
     return `<a class="file-chip" onclick="openModal('${url}', '${f.name.replace(/'/g,"\\'")}')">
       <span class="file-chip-icon">${icon}</span>${f.name}
     </a>`;
-  }).join('');
+  }).join('') + notesHtml;
 }
 
 // ── HOMEWORK ──────────────────────────────────────────────────────────
@@ -749,7 +799,7 @@ function redrawSchedTable() {
   const tbody = document.getElementById('sched-tbody');
   const visible = schedData.filter(r => !r._deleted);
   if (!visible.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
     return;
   }
   tbody.innerHTML = '';
@@ -770,6 +820,7 @@ function makeSchedRow(r, i) {
     <td><input class="admin-input" type="text" value="${r.week_commencing||''}" placeholder="d/m/yyyy" oninput="schedData[${i}].week_commencing=this.value"></td>
     <td><input class="admin-input" type="text" value="${r.content||''}" oninput="schedData[${i}].content=this.value"></td>
     <td><input class="admin-input" type="text" value="${r.homework||''}" oninput="schedData[${i}].homework=this.value"></td>
+    <td><textarea class="admin-textarea" placeholder="Use **bold**, *italics*, [link](https://example.com)" oninput="schedData[${i}].notes=this.value">${r.notes||''}</textarea></td>
     <td><input class="admin-input" type="text" value="${r.vcaa_exam||''}" oninput="schedData[${i}].vcaa_exam=this.value"></td>
     <td><input class="admin-input" type="url" value="${r.youtube_link||''}" placeholder="https://youtube.com/..." oninput="schedData[${i}].youtube_link=this.value"></td>
     <td>${r.id && !r._new ? `<button class="btn-files" onclick="toggleAdminFiles('${r.id}', ${i})">📎 Files</button>` : '<span style="font-size:0.75rem;color:var(--ink-muted)">Save first</span>'}</td>
@@ -780,7 +831,7 @@ function makeSchedRow(r, i) {
     const fileRow = document.createElement('tr');
     fileRow.className = 'admin-file-row';
     fileRow.id = `admin-file-row-${r.id}`;
-    fileRow.innerHTML = `<td colspan="8"><div class="admin-file-panel" id="admin-file-panel-${r.id}"></div></td>`;
+    fileRow.innerHTML = `<td colspan="10"><div class="admin-file-panel" id="admin-file-panel-${r.id}"></div></td>`;
     // We'll append it after the main row outside this function
     tr._fileRow = fileRow;
   }
@@ -792,7 +843,7 @@ function redrawSchedTableWithFiles() {
   const tbody = document.getElementById('sched-tbody');
   const visible = schedData.filter(r => !r._deleted);
   if (!visible.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
     return;
   }
   tbody.innerHTML = '';
@@ -890,7 +941,7 @@ function addScheduleRow() {
   schedData.push({
     id: null, term: 2,
     week_number: schedData.filter(r=>!r._deleted).length + 1,
-    week_commencing: '', content: '', homework: '', vcaa_exam: '',
+    week_commencing: '', content: '', homework: '', notes: '', vcaa_exam: '',
     sort_order: schedData.length, _new: true
   });
   redrawSchedTable();
@@ -909,7 +960,7 @@ async function saveSchedule() {
     term: r.term, week_number: r.week_number,
     week_commencing: r.week_commencing || null,
     content: r.content || null, homework: r.homework || null,
-    vcaa_exam: r.vcaa_exam || null, youtube_link: r.youtube_link || null, sort_order: i
+    notes: r.notes || null, vcaa_exam: r.vcaa_exam || null, youtube_link: r.youtube_link || null, sort_order: i
   }));
   const ops = [];
   if (toDelete.length) ops.push(sb.from('schedule').delete().in('id', toDelete.map(r=>r.id)));
