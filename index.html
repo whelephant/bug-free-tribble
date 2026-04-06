@@ -961,7 +961,7 @@ async function adminDeleteFile(rowId, fileName, btn) {
 // ── ADMIN: ADD / DELETE SCHEDULE ROW ─────────────────────────────────
 function addScheduleRow() {
   schedData.push({
-    id: null, term: 2,
+    id: crypto.randomUUID(), term: 2,
     week_number: schedData.filter(r=>!r._deleted).length + 1,
     week_commencing: '', content: '', homework: '', notes: '', vcaa_exam: '',
     sort_order: schedData.length, _new: true
@@ -995,13 +995,16 @@ function moveSchedRow(i, direction) {
 async function saveSchedule() {
   const statusEl = document.getElementById('sched-saved');
   const toDelete = schedData.filter(r => r._deleted && r.id);
-  const toUpsert = schedData.filter(r => !r._deleted).map((r, i) => ({
-    ...(r.id ? { id: r.id } : {}),
-    term: r.term, week_number: r.week_number,
-    week_commencing: r.week_commencing || null,
-    content: r.content || null, homework: r.homework || null,
-    notes: r.notes || null, vcaa_exam: r.vcaa_exam || null, youtube_link: r.youtube_link || null, sort_order: i
-  }));
+  const toUpsert = schedData.filter(r => !r._deleted).map((r, i) => {
+    if (!r.id) r.id = crypto.randomUUID();
+    return {
+      id: r.id,
+      term: r.term, week_number: r.week_number,
+      week_commencing: r.week_commencing || null,
+      content: r.content || null, homework: r.homework || null,
+      notes: r.notes || null, vcaa_exam: r.vcaa_exam || null, youtube_link: r.youtube_link || null, sort_order: i
+    };
+  });
   const ops = [];
   if (toDelete.length) ops.push(sb.from('schedule').delete().in('id', toDelete.map(r=>r.id)));
   if (toUpsert.length) ops.push(sb.from('schedule').upsert(toUpsert));
