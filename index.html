@@ -811,7 +811,7 @@ function renderAdminSchedule(rows) {
   redrawSchedTable();
 }
 
-function redrawSchedTable() {
+function redrawSchedTableWithFiles() {
   const tbody = document.getElementById('sched-tbody');
   const visible = schedData.filter(r => !r._deleted);
   if (!visible.length) {
@@ -819,8 +819,16 @@ function redrawSchedTable() {
     return;
   }
   tbody.innerHTML = '';
-  schedData.forEach((r, i) => { if (!r._deleted) tbody.appendChild(makeSchedRow(r, i)); });
+  schedData.forEach((r, i) => {
+    if (r._deleted) return;
+    const tr = makeSchedRow(r, i);
+    tbody.appendChild(tr);
+    if (tr._fileRow) tbody.appendChild(tr._fileRow);
+  });
 }
+
+// redrawSchedTable is an alias for redrawSchedTableWithFiles
+function redrawSchedTable() { redrawSchedTableWithFiles(); }
 
 function makeSchedRow(r, i) {
   const tr = document.createElement('tr');
@@ -848,37 +856,17 @@ function makeSchedRow(r, i) {
       <button class="btn-delete" onclick="deleteSchedRow(${i})">✕</button>
     </td>`;
 
-  // Append the file panel row right after
+  // Append the file panel row right after (only for saved rows)
   if (r.id && !r._new) {
     const fileRow = document.createElement('tr');
     fileRow.className = 'admin-file-row';
     fileRow.id = `admin-file-row-${r.id}`;
     fileRow.innerHTML = `<td colspan="11"><div class="admin-file-panel" id="admin-file-panel-${r.id}"></div></td>`;
-    // We'll append it after the main row outside this function
     tr._fileRow = fileRow;
   }
 
   return tr;
 }
-
-function redrawSchedTableWithFiles() {
-  const tbody = document.getElementById('sched-tbody');
-  const visible = schedData.filter(r => !r._deleted);
-  if (!visible.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--ink-muted)">No rows yet. Click + Add Row.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = '';
-  schedData.forEach((r, i) => {
-    if (r._deleted) return;
-    const tr = makeSchedRow(r, i);
-    tbody.appendChild(tr);
-    if (tr._fileRow) tbody.appendChild(tr._fileRow);
-  });
-}
-
-// Override redrawSchedTable to include file rows
-function redrawSchedTable() { redrawSchedTableWithFiles(); }
 
 async function toggleAdminFiles(rowId, idx) {
   const fileRow   = document.getElementById(`admin-file-row-${rowId}`);
@@ -959,12 +947,19 @@ async function adminDeleteFile(rowId, fileName, btn) {
 }
 
 // ── ADMIN: ADD / DELETE SCHEDULE ROW ─────────────────────────────────
+
+// Safe ID generator that works in all contexts (no crypto.randomUUID dependency)
+function generateSchedTempId() {
+  return 'sched-new-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+}
+
 function addScheduleRow() {
   schedData.push({
-    id: crypto.randomUUID(), term: 2,
-    week_number: schedData.filter(r=>!r._deleted).length + 1,
+    id: null,
+    term: 2,
+    week_number: schedData.filter(r => !r._deleted).length + 1,
     week_commencing: '', content: '', homework: '', notes: '', vcaa_exam: '',
-    sort_order: schedData.length, _new: true
+    youtube_link: '', sort_order: schedData.length, _new: true
   });
   redrawSchedTable();
 }
@@ -975,17 +970,14 @@ function deleteSchedRow(i) {
 }
 
 function moveSchedRow(i, direction) {
-  // Find the indices of visible (non-deleted) rows around position i
   const visibleIndices = schedData.map((r, idx) => !r._deleted ? idx : null).filter(idx => idx !== null);
   const currentPos = visibleIndices.indexOf(i);
   
   if (direction === -1 && currentPos > 0) {
-    // Move up: swap with previous visible row
     const swapIdx = visibleIndices[currentPos - 1];
     [schedData[i], schedData[swapIdx]] = [schedData[swapIdx], schedData[i]];
     redrawSchedTable();
   } else if (direction === 1 && currentPos < visibleIndices.length - 1) {
-    // Move down: swap with next visible row
     const swapIdx = visibleIndices[currentPos + 1];
     [schedData[i], schedData[swapIdx]] = [schedData[swapIdx], schedData[i]];
     redrawSchedTable();
@@ -996,17 +988,23 @@ async function saveSchedule() {
   const statusEl = document.getElementById('sched-saved');
   const toDelete = schedData.filter(r => r._deleted && r.id);
   const toUpsert = schedData.filter(r => !r._deleted).map((r, i) => {
-    if (!r.id) r.id = crypto.randomUUID();
+    // Only assign a UUID at save time, not before
+    const id = r.id || (
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : generateSchedTempId()
+    );
     return {
-      id: r.id,
+      id,
       term: r.term, week_number: r.week_number,
       week_commencing: r.week_commencing || null,
       content: r.content || null, homework: r.homework || null,
-      notes: r.notes || null, vcaa_exam: r.vcaa_exam || null, youtube_link: r.youtube_link || null, sort_order: i
+      notes: r.notes || null, vcaa_exam: r.vcaa_exam || null,
+      youtube_link: r.youtube_link || null, sort_order: i
     };
   });
   const ops = [];
-  if (toDelete.length) ops.push(sb.from('schedule').delete().in('id', toDelete.map(r=>r.id)));
+  if (toDelete.length) ops.push(sb.from('schedule').delete().in('id', toDelete.map(r => r.id)));
   if (toUpsert.length) ops.push(sb.from('schedule').upsert(toUpsert));
   try {
     const results = await Promise.all(ops);
@@ -1071,17 +1069,14 @@ function deleteHwRow(i) {
 }
 
 function moveHwRow(i, direction) {
-  // Find the indices of visible (non-deleted) rows around position i
   const visibleIndices = hwData.map((r, idx) => !r._deleted ? idx : null).filter(idx => idx !== null);
   const currentPos = visibleIndices.indexOf(i);
   
   if (direction === -1 && currentPos > 0) {
-    // Move up: swap with previous visible row
     const swapIdx = visibleIndices[currentPos - 1];
     [hwData[i], hwData[swapIdx]] = [hwData[swapIdx], hwData[i]];
     redrawHwTable();
   } else if (direction === 1 && currentPos < visibleIndices.length - 1) {
-    // Move down: swap with next visible row
     const swapIdx = visibleIndices[currentPos + 1];
     [hwData[i], hwData[swapIdx]] = [hwData[swapIdx], hwData[i]];
     redrawHwTable();
@@ -1122,7 +1117,6 @@ async function saveHomework() {
 
 // ── UTILS ─────────────────────────────────────────────────────────────
 function generateHomeworkId() {
-  // Extract the highest number from existing homework items and increment
   const existingIds = hwData.map(r => r.id).filter(id => id && id.startsWith('hw')).map(id => parseInt(id.replace('hw', '')) || 0);
   const maxNum = existingIds.length > 0 ? Math.max(...existingIds) : 0;
   return 'hw' + (maxNum + 1);
