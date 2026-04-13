@@ -957,7 +957,7 @@ function addScheduleRow() {
   schedData.push({
     id: null,
     term: 2,
-    week_number: schedData.filter(r => !r._deleted).length + 1,
+    week_number: schedData.filter(r => !r._deleted).length,
     week_commencing: '', content: '', homework: '', notes: '', vcaa_exam: '',
     youtube_link: '', sort_order: schedData.length, _new: true
   });
