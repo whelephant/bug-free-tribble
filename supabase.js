@@ -1,4 +1,4 @@
-/**
+/** 
  * Minified by jsDelivr using Terser v5.39.0.
  * Original file: /npm/@supabase/supabase-js@2.104.1/dist/umd/supabase.js
  *
