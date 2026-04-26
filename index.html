@@ -994,11 +994,26 @@ function getPublicUrl(path) {
 }
 
 // ── FILE MODAL ────────────────────────────────────────────────────────
+// iOS Safari and most mobile browsers refuse to scroll PDFs rendered inside
+// an <iframe> — only the first page is shown. Detect that case and hand the
+// file off to the OS-level viewer in a new tab instead.
+function isMobileDevice() {
+  if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return true;
+  if (navigator.userAgent.includes('Mac') && 'ontouchend' in document) return true;
+  return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+}
+
 function openModal(url, name) {
+  let parsed;
   try {
-    const u = new URL(url, window.location.href);
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return;
+    parsed = new URL(url, window.location.href);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
   } catch { return; }
+  const isPdf = /\.pdf$/i.test(parsed.pathname) || /\.pdf$/i.test(String(name || ''));
+  if (isPdf && isMobileDevice()) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
   document.getElementById('modal-title').textContent = name;
   document.getElementById('modal-frame').src = url;
   document.getElementById('file-modal').classList.add('open');
