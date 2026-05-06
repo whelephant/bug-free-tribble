@@ -281,7 +281,7 @@ function renderFileChips(files, rowId, row) {
 
 // ── SCHEDULE (student view) ───────────────────────────────────────────
 async function loadSchedule() {
-  const { data, error } = await sb.from('schedule').select('*').order('sort_order');
+  const { data, error } = await sb.from('schedule').select('*').eq('published', true).order('sort_order');
   if (error) { document.getElementById('schedule-content').innerHTML = '<div class="empty-state">Error loading schedule.</div>'; return; }
   currentScheduleRows = data || [];
   renderSchedule(currentScheduleRows);
@@ -612,6 +612,10 @@ function renderAdminSchedule(rows) {
   redrawSchedTable();
 }
 
+// Track which term groups the admin has collapsed in the schedule editor.
+// Persists across redraws within the session so collapse state survives edits.
+const _adminSchedCollapsed = new Set();
+
 function redrawSchedTableWithFiles() {
   const tbody = document.getElementById('sched-tbody');
   const visible = schedData.filter(r => !r._deleted);
@@ -620,12 +624,42 @@ function redrawSchedTableWithFiles() {
     return;
   }
   tbody.innerHTML = '';
-  schedData.forEach((r, i) => {
-    if (r._deleted) return;
-    const tr = makeSchedRow(r, i);
-    tbody.appendChild(tr);
-    if (tr._fileRow) tbody.appendChild(tr._fileRow);
+  [1, 2, 3, 4].forEach(t => {
+    const groupCount = schedData.filter(r => !r._deleted && r.term === t).length;
+    if (!groupCount) return;
+    const collapsed = _adminSchedCollapsed.has(t);
+
+    const draftCount = schedData.filter(r => !r._deleted && r.term === t && r.published === false).length;
+    const draftHtml = draftCount ? `<span class="draft-count">${draftCount} draft${draftCount === 1 ? '' : 's'}</span>` : '';
+
+    const headerTr = document.createElement('tr');
+    headerTr.className = `admin-term-header t${t}${collapsed ? ' collapsed' : ''}`;
+    headerTr.dataset.term = t;
+    headerTr.innerHTML = `<td colspan="10" onclick="toggleAdminSchedTerm(${t})">Term ${t}<span class="admin-term-count">${groupCount} ${groupCount === 1 ? 'row' : 'rows'}${draftHtml}</span></td>`;
+    tbody.appendChild(headerTr);
+
+    schedData.forEach((r, i) => {
+      if (r._deleted || r.term !== t) return;
+      const tr = makeSchedRow(r, i);
+      tr.classList.add('admin-term-row');
+      tr.dataset.termRow = t;
+      if (collapsed) tr.classList.add('collapsed');
+      tbody.appendChild(tr);
+      if (tr._fileRow) {
+        tr._fileRow.dataset.termRow = t;
+        if (collapsed) tr._fileRow.classList.add('collapsed');
+        tbody.appendChild(tr._fileRow);
+      }
+    });
   });
+}
+
+function toggleAdminSchedTerm(t) {
+  const willCollapse = !_adminSchedCollapsed.has(t);
+  if (willCollapse) _adminSchedCollapsed.add(t); else _adminSchedCollapsed.delete(t);
+  const tbody = document.getElementById('sched-tbody');
+  tbody.querySelector(`.admin-term-header[data-term="${t}"]`)?.classList.toggle('collapsed', willCollapse);
+  tbody.querySelectorAll(`tr[data-term-row="${t}"]`).forEach(r => r.classList.toggle('collapsed', willCollapse));
 }
 
 // redrawSchedTable is an alias for redrawSchedTableWithFiles
@@ -634,13 +668,16 @@ function redrawSchedTable() { redrawSchedTableWithFiles(); }
 function makeSchedRow(r, i) {
   const tr = document.createElement('tr');
   if (r._new) tr.classList.add('new-row');
+  if (r.published === false) tr.classList.add('draft-row');
   tr.ondragover = (e) => onRowDragOver(e, i, 'sched');
   tr.ondrop     = (e) => onRowDrop(e, i, 'sched');
   tr.ondragleave = (e) => onRowDragLeave(e);
   const visibleIndex = schedData.filter((row, idx) => !row._deleted && idx <= i).length - 1;
   const visibleTotal = schedData.filter(row => !row._deleted).length;
+  const isLive = r.published !== false;
+  const publishBtn = `<button class="btn-publish ${isLive ? 'live' : 'draft'}" onclick="togglePublished(${i})" title="${isLive ? 'Visible to students — click to hide' : 'Hidden from students — click to publish'}">${isLive ? '● LIVE' : '○ DRAFT'}</button>`;
   tr.innerHTML = `
-    <td><select class="admin-select" onchange="schedData[${i}].term=parseInt(this.value)">
+    <td><select class="admin-select" onchange="onSchedTermChange(${i}, this.value)">
       <option value="1" ${r.term===1?'selected':''}>Term 1</option>
       <option value="2" ${r.term===2?'selected':''}>Term 2</option>
       <option value="3" ${r.term===3?'selected':''}>Term 3</option>
@@ -655,6 +692,7 @@ function makeSchedRow(r, i) {
     <td><input class="admin-input" type="url" value="${escapeHtml(r.youtube_link||'')}" placeholder="https://youtube.com/..." oninput="schedData[${i}].youtube_link=this.value"></td>
     <td>${r.id && !r._new ? `<button class="btn-files" onclick="toggleAdminFiles(${jsAttr(r.id)}, ${i})">📎 Files</button>` : '<span style="font-size:0.75rem;color:var(--dim)">Save first</span>'}</td>
     <td style="display:flex;gap:0.3rem;align-items:center;">
+      ${publishBtn}
       <span class="drag-handle" draggable="true" ondragstart="onRowDragStart(event, ${i}, 'sched')" ondragend="onRowDragEnd(event)" title="Drag to reorder">⋮⋮</span>
       ${visibleIndex > 0 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveSchedRow(${i},-1)" title="Move up">▲</button>` : '<span style="width:1.8rem"></span>'}
       ${visibleIndex < visibleTotal - 1 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveSchedRow(${i},1)" title="Move down">▼</button>` : '<span style="width:1.8rem"></span>'}
@@ -769,8 +807,23 @@ function addScheduleRow() {
     term: 2,
     week_number: schedData.filter(r => !r._deleted).length,
     week_commencing: '', content: '', homework: '', notes: '', vcaa_exam: '',
-    youtube_link: '', sort_order: schedData.length, _new: true
+    youtube_link: '', sort_order: schedData.length, _new: true,
+    published: false  // start as draft so admins can plan without it going live
   });
+  // Make sure the user can see the row they just added.
+  _adminSchedCollapsed.delete(2);
+  redrawSchedTable();
+}
+
+function togglePublished(i) {
+  schedData[i].published = schedData[i].published === false ? true : false;
+  redrawSchedTable();
+}
+
+function onSchedTermChange(i, value) {
+  schedData[i].term = parseInt(value);
+  // Expand the destination term so the moved row stays visible.
+  _adminSchedCollapsed.delete(schedData[i].term);
   redrawSchedTable();
 }
 
@@ -810,7 +863,8 @@ async function saveSchedule() {
       week_commencing: r.week_commencing || null,
       content: r.content || null, homework: r.homework || null,
       notes: r.notes || null, vcaa_exam: r.vcaa_exam || null,
-      youtube_link: r.youtube_link || null, sort_order: i
+      youtube_link: r.youtube_link || null, sort_order: i,
+      published: r.published !== false
     };
   });
   const ops = [];
@@ -835,6 +889,9 @@ function renderAdminHomework(rows) {
   redrawHwTable();
 }
 
+// Track which term groups the admin has collapsed in the homework editor.
+const _adminHwCollapsed = new Set();
+
 function redrawHwTable() {
   const tbody = document.getElementById('hw-tbody');
   const visible = hwData.filter(r => !r._deleted);
@@ -843,7 +900,34 @@ function redrawHwTable() {
     return;
   }
   tbody.innerHTML = '';
-  hwData.forEach((r, i) => { if (!r._deleted) tbody.appendChild(makeHwRow(r, i)); });
+  [1, 2, 3, 4].forEach(t => {
+    const groupCount = hwData.filter(r => !r._deleted && r.term === t).length;
+    if (!groupCount) return;
+    const collapsed = _adminHwCollapsed.has(t);
+
+    const headerTr = document.createElement('tr');
+    headerTr.className = `admin-term-header t${t}${collapsed ? ' collapsed' : ''}`;
+    headerTr.dataset.term = t;
+    headerTr.innerHTML = `<td colspan="4" onclick="toggleAdminHwTerm(${t})">Term ${t}<span class="admin-term-count">${groupCount} ${groupCount === 1 ? 'item' : 'items'}</span></td>`;
+    tbody.appendChild(headerTr);
+
+    hwData.forEach((r, i) => {
+      if (r._deleted || r.term !== t) return;
+      const tr = makeHwRow(r, i);
+      tr.classList.add('admin-term-row');
+      tr.dataset.termRow = t;
+      if (collapsed) tr.classList.add('collapsed');
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function toggleAdminHwTerm(t) {
+  const willCollapse = !_adminHwCollapsed.has(t);
+  if (willCollapse) _adminHwCollapsed.add(t); else _adminHwCollapsed.delete(t);
+  const tbody = document.getElementById('hw-tbody');
+  tbody.querySelector(`.admin-term-header[data-term="${t}"]`)?.classList.toggle('collapsed', willCollapse);
+  tbody.querySelectorAll(`tr[data-term-row="${t}"]`).forEach(r => r.classList.toggle('collapsed', willCollapse));
 }
 
 function makeHwRow(r, i) {
@@ -855,7 +939,7 @@ function makeHwRow(r, i) {
   const visibleIndex = hwData.filter((row, idx) => !row._deleted && idx <= i).length - 1;
   const visibleTotal = hwData.filter(row => !row._deleted).length;
   tr.innerHTML = `
-    <td><select class="admin-select" onchange="hwData[${i}].term=parseInt(this.value)">
+    <td><select class="admin-select" onchange="onHwTermChange(${i}, this.value)">
       <option value="1" ${r.term===1?'selected':''}>Term 1</option>
       <option value="2" ${r.term===2?'selected':''}>Term 2</option>
       <option value="3" ${r.term===3?'selected':''}>Term 3</option>
@@ -874,6 +958,13 @@ function makeHwRow(r, i) {
 
 function addHomeworkRow() {
   hwData.push({ id: null, term: 2, week_label: '', text: '', sort_order: hwData.length, _new: true });
+  _adminHwCollapsed.delete(2);
+  redrawHwTable();
+}
+
+function onHwTermChange(i, value) {
+  hwData[i].term = parseInt(value);
+  _adminHwCollapsed.delete(hwData[i].term);
   redrawHwTable();
 }
 

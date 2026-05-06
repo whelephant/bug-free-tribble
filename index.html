@@ -258,7 +258,7 @@
   .admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
   .admin-table th { background: var(--bg); padding: 0.6rem 0.8rem; text-align: left; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); font-weight: 900; border-bottom: 1px solid var(--rule); }
   .admin-table td { padding: 0.5rem 0.8rem; border-top: 1px solid var(--rule); vertical-align: middle; }
-  .admin-table tr:hover td { background: var(--bg); }
+  .admin-table tr:hover:not(.admin-term-header) td { background: var(--bg); }
   .admin-input, .admin-textarea { width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--rule); background: var(--surface); font-family: inherit; font-size: 0.85rem; font-weight: 500; color: var(--ink); outline: none; }
   .admin-input:focus, .admin-textarea:focus { border-color: var(--ink); }
   .admin-textarea { min-height: 4.5rem; resize: vertical; line-height: 1.5; }
@@ -275,6 +275,35 @@
   .save-status { font-size: 0.72rem; font-weight: 900; color: var(--hl-ink); margin-left: 0.5rem; opacity: 0; transition: opacity 0.3s; background: var(--hl); padding: 3px 8px 5px; letter-spacing: -0.005em; }
   .save-status.show { opacity: 1; }
   .new-row td { background: var(--hero-bg) !important; }
+
+  /* DRAFT (unpublished) schedule rows */
+  .draft-row > td { background: #fffbe6; }
+  .draft-row > td:first-child { box-shadow: inset 4px 0 0 var(--amber); }
+  .btn-publish { padding: 0.2rem 0.45rem; background: transparent; border: 1px solid transparent; font-family: inherit; font-size: 0.7rem; font-weight: 900; letter-spacing: 0.06em; cursor: pointer; transition: all 0.1s; line-height: 1; white-space: nowrap; }
+  .btn-publish.live  { color: var(--green); }
+  .btn-publish.draft { color: var(--amber); border-color: var(--amber); background: #fff7c2; }
+  .btn-publish:hover { background: var(--ink); color: white; border-color: var(--ink); }
+  .admin-term-count .draft-count { color: var(--amber); margin-left: 0.4rem; font-weight: 900; }
+
+  /* ADMIN TERM GROUPS — mirror student schedule term-block pattern */
+  .admin-term-header td {
+    cursor: pointer; padding: 0.65rem 1rem; position: relative;
+    font-weight: 900; font-size: 0.7rem; letter-spacing: 0.18em;
+    text-transform: uppercase; user-select: none;
+    border-top: 1px solid var(--rule);
+  }
+  .admin-term-header td::after {
+    content: '−'; position: absolute; right: 1rem; top: 50%;
+    transform: translateY(-55%); font-size: 1.05rem; font-weight: 900;
+  }
+  .admin-term-header.collapsed td::after { content: '+'; }
+  .admin-term-header.t1 td { background: var(--term1-bg); color: var(--term1-ink); }
+  .admin-term-header.t2 td { background: var(--term2-bg); color: var(--term2-ink); }
+  .admin-term-header.t3 td { background: var(--term3-bg); color: var(--term3-ink); }
+  .admin-term-header.t4 td { background: var(--term4-bg); color: var(--term4-ink); }
+  .admin-term-count { opacity: 0.7; font-weight: 700; margin-left: 0.6rem; letter-spacing: 0.1em; }
+  tr.admin-term-row.collapsed,
+  tr.admin-file-row.collapsed { display: none; }
 
   /* ADMIN FILE PANEL */
   .admin-file-row { display: none; background: var(--bg); }
