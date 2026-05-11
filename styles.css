@@ -94,6 +94,53 @@ header h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); font-weight: 900; letter-spac
   box-shadow: inset 3px 0 0 #ff506e;
 }
 
+/* INSPIRATIONAL QUOTE */
+.title-row {
+  display: flex;
+  align-items: stretch;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+}
+.title-row h1 { margin: 0; }
+.inspirational-quote {
+  position: relative;
+  margin: 0;
+  padding: 0.4rem 0 0.4rem 1.75rem;
+  align-self: center;
+  font-size: 1rem;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--fg);
+  opacity: 0.78;
+  line-height: 1.5;
+  max-width: 460px;
+}
+.inspirational-quote::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  width: 2px;
+  background: var(--fg);
+  opacity: 0.25;
+  border-radius: 2px;
+}
+.inspirational-quote cite {
+  display: block;
+  margin-top: 0.4rem;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg);
+  opacity: 0.6;
+}
+@media (max-width: 720px) {
+  .inspirational-quote { font-size: 0.9rem; padding-left: 1.25rem; }
+}
+
 /* NAV */
 nav { background: var(--bg); border-bottom: 1px solid var(--rule); display: flex; padding: 0 3rem; }
 .tab { padding: 1.05rem 1.4rem; cursor: pointer; font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 900; color: var(--dim); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: background 0.1s, color 0.1s, font-style 0.1s, text-shadow 0.1s; user-select: none; }
