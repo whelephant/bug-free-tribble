@@ -17,6 +17,12 @@ let currentScheduleRows = [];
 let studyAreas = [];
 let studyPoints = [];
 let studyStatusMap = {};
+let trialExams = [];
+let teProgressMap = {};      // key = `${exam_id}:${paper}` -> boolean
+let teMistakeCounts = {};    // key = `${exam_id}:${paper}` -> number (for badge)
+let teData = [];             // admin draft buffer
+let usersData = [];          // admin users list
+let mbEditing = null;        // {examId, paper, examLabel, rows: [...]}
 
 // ── SCREEN HELPER ─────────────────────────────────────────────────────
 function showScreen(id) {
@@ -116,7 +122,7 @@ async function enterApp() {
   document.getElementById('user-label').textContent = name;
   showScreen('screen-app');
   updateExamCountdown();
-  await Promise.all([loadSchedule(), loadHomework(), loadStudyDesign()]);
+  await Promise.all([loadSchedule(), loadHomework(), loadStudyDesign(), loadTrialExams()]);
 }
 
 function updateExamCountdown() {
@@ -595,15 +601,76 @@ async function resetStudyDesign() {
 }
 
 // ── ADMIN: LOAD ───────────────────────────────────────────────────────
-// `only` may be 'schedule' | 'homework' | undefined (load both).
+// `only` may be 'schedule' | 'homework' | 'trialexams' | 'users' | undefined (load all).
 async function loadAdminData(only) {
+  const loadSched = !only || only === 'schedule';
+  const loadHw    = !only || only === 'homework';
+  const loadTe    = !only || only === 'trialexams';
+  const loadUsers = !only || only === 'users';
   const ops = [];
-  if (only !== 'homework') ops.push(sb.from('schedule').select('*').order('sort_order'));
-  if (only !== 'schedule') ops.push(sb.from('homework_items').select('*').order('sort_order'));
+  if (loadSched) ops.push(sb.from('schedule').select('*').order('sort_order'));
+  if (loadHw)    ops.push(sb.from('homework_items').select('*').order('sort_order'));
+  if (loadTe)    ops.push(sb.from('trial_exams').select('*').order('sort_order'));
+  if (loadUsers) ops.push(sb.rpc('admin_list_users'));
   const results = await Promise.all(ops);
   let i = 0;
-  if (only !== 'homework') renderAdminSchedule(results[i++].data || []);
-  if (only !== 'schedule') renderAdminHomework(results[i++].data || []);
+  if (loadSched) renderAdminSchedule(results[i++].data || []);
+  if (loadHw)    renderAdminHomework(results[i++].data || []);
+  if (loadTe)    renderAdminTrialExams(results[i++].data || []);
+  if (loadUsers) { usersData = results[i++].data || []; renderAdminUsers(); }
+}
+
+async function loadAdminUsers() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--dim)"><span class="spinner"></span> Loading…</td></tr>';
+  const { data, error } = await sb.rpc('admin_list_users');
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--dim)">Error: ${escapeHtml(error.message)}</td></tr>`;
+    return;
+  }
+  usersData = data || [];
+  renderAdminUsers();
+}
+
+function renderAdminUsers() {
+  const tbody = document.getElementById('users-tbody');
+  if (!tbody) return;
+  const q = (document.getElementById('users-search')?.value || '').trim().toLowerCase();
+  const rows = q
+    ? usersData.filter(u => (u.email || '').toLowerCase().includes(q) || (u.display_name || '').toLowerCase().includes(q))
+    : usersData;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--dim)">No users found.</td></tr>';
+    return;
+  }
+  const fmt = ts => ts ? new Date(ts).toLocaleDateString() : '—';
+  const isBanned = u => u.banned_until && new Date(u.banned_until) > new Date();
+  tbody.innerHTML = rows.map(u => {
+    const banned = isBanned(u);
+    const isSelf = currentUser && u.id === currentUser.id;
+    const statusHtml = banned
+      ? '<span style="color:var(--amber);font-weight:900">Disabled</span>'
+      : (u.email_confirmed_at ? '<span style="color:var(--dim)">Active</span>' : '<span style="color:var(--dim);font-style:italic">Unconfirmed</span>');
+    const actionHtml = isSelf
+      ? '<span style="font-size:0.72rem;color:var(--dim);font-style:italic">(you)</span>'
+      : `<button class="btn-files" onclick="toggleUserBanned(${jsAttr(u.id)}, ${banned})">${banned ? 'Enable' : 'Disable'}</button>`;
+    return `<tr>
+      <td>${escapeHtml(u.email || '')}</td>
+      <td>${escapeHtml(u.display_name || '')}</td>
+      <td>${fmt(u.created_at)}</td>
+      <td>${fmt(u.last_sign_in_at)}</td>
+      <td>${statusHtml}</td>
+      <td>${actionHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function toggleUserBanned(userId, currentlyBanned) {
+  const action = currentlyBanned ? 'enable' : 'disable';
+  if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+  const { error } = await sb.rpc('admin_set_user_banned', { target_user: userId, banned: !currentlyBanned });
+  if (error) { alert(`Failed to ${action} user: ${error.message}`); return; }
+  await loadAdminUsers();
 }
 
 // ── ADMIN: SCHEDULE ───────────────────────────────────────────────────
@@ -1137,7 +1204,7 @@ function toggleTheme() {
 
 // ── DRAG-AND-DROP: ROW REORDER ────────────────────────────────────────
 let _dragSrcIdx = null;
-let _dragKind = null;  // 'sched' | 'hw'
+let _dragKind = null;  // 'sched' | 'hw' | 'te'
 
 function onRowDragStart(e, idx, kind) {
   _dragSrcIdx = idx;
@@ -1172,13 +1239,14 @@ function onRowDrop(e, idx, kind) {
   const srcKind = _dragKind;
   cleanupDragState();
   if (srcKind !== kind || srcIdx === null || srcIdx === idx) return;
-  const arr = kind === 'sched' ? schedData : hwData;
+  const arr = kind === 'sched' ? schedData : (kind === 'hw' ? hwData : teData);
   if (srcIdx < 0 || srcIdx >= arr.length || idx < 0 || idx >= arr.length) return;
   const [moved] = arr.splice(srcIdx, 1);
   const insertAt = srcIdx < idx ? idx - 1 : idx;
   arr.splice(insertAt, 0, moved);
   if (kind === 'sched') redrawSchedTable();
-  else redrawHwTable();
+  else if (kind === 'hw') redrawHwTable();
+  else redrawTeTable();
 }
 
 function onRowDragEnd(e) {
@@ -1219,3 +1287,594 @@ window.addEventListener('drop', e => {
     if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) e.preventDefault();
   }
 });
+
+// ── TRIAL EXAMS: SLOT CONFIG ──────────────────────────────────────────
+const TE_SLOT_TYPES = ['paper', 'solutions', 'report'];
+const TE_SLOT_LABELS = { paper: 'Question Paper', solutions: 'Solutions', report: "Examiner's Report" };
+const TE_SLOT_ICONS  = { paper: '📄',            solutions: '📝',        report: '📊' };
+
+function teSlotPath(rowId, paper, type) {
+  return `trial-exam-${rowId}/exam${paper}-${type}.pdf`;
+}
+function teSlotKey(rowId, paper, type) {
+  return `${rowId}:${paper}:${type}`;
+}
+
+// teFileMap[`${rowId}:${paper}:${type}`] = true (file present) | undefined
+let teFileMap = {};
+
+async function teListRowFiles(rowId) {
+  const { data, error } = await sb.storage.from(STORAGE_BUCKET).list(`trial-exam-${rowId}`);
+  if (error || !data) return [];
+  return data.filter(f => f.name && !f.name.startsWith('.'));
+}
+
+// Parse "exam1-paper.pdf" → { paper: 1, type: 'paper' }
+function teParseFilename(name) {
+  const m = /^exam([12])-(paper|solutions|report)\.pdf$/i.exec(name);
+  if (!m) return null;
+  return { paper: parseInt(m[1], 10), type: m[2].toLowerCase() };
+}
+
+// ── TRIAL EXAMS (student view) ────────────────────────────────────────
+async function loadTrialExams() {
+  const [examsRes, progRes, mistakesRes] = await Promise.all([
+    sb.from('trial_exams').select('*').eq('published', true).order('sort_order'),
+    sb.from('trial_exam_progress').select('*').eq('user_id', currentUser.id),
+    sb.from('trial_exam_mistakes').select('exam_id,paper').eq('user_id', currentUser.id)
+  ]);
+  if (examsRes.error) {
+    document.getElementById('te-content').innerHTML = '<div class="empty-state">Error loading trial exams.</div>';
+    return;
+  }
+  trialExams = examsRes.data || [];
+  teProgressMap = {};
+  (progRes.data || []).forEach(p => { teProgressMap[`${p.exam_id}:${p.paper}`] = p.completed; });
+  teMistakeCounts = {};
+  (mistakesRes.data || []).forEach(m => {
+    const k = `${m.exam_id}:${m.paper}`;
+    teMistakeCounts[k] = (teMistakeCounts[k] || 0) + 1;
+  });
+  // Fetch storage contents for all exam rows in parallel — populates teFileMap
+  teFileMap = {};
+  const lists = await Promise.all(trialExams.map(r => teListRowFiles(r.id)));
+  trialExams.forEach((r, i) => {
+    (lists[i] || []).forEach(f => {
+      const parsed = teParseFilename(f.name);
+      if (parsed) teFileMap[teSlotKey(r.id, parsed.paper, parsed.type)] = true;
+    });
+  });
+  renderTrialExams();
+}
+
+function renderTrialExams() {
+  const el = document.getElementById('te-content');
+  if (!trialExams.length) {
+    el.innerHTML = '<div class="empty-state">No trial exams yet — check back soon.</div>';
+    updateTrialExamProgress();
+    return;
+  }
+  let html = `<table class="te-table"><thead><tr>
+    <th>Week Commencing</th><th>Year / Paper</th><th>Exams to Complete</th>
+  </tr></thead><tbody>`;
+  trialExams.forEach(r => {
+    const isHoliday = /holiday/i.test(r.week_commencing || '');
+    const weekText = (r.week_commencing || '').replace(/\s*\(School Holidays\)\s*/i, '').trim();
+    html += `<tr${isHoliday ? ' class="holiday"' : ''}>
+      <td class="te-week" data-label="Week Commencing">${escapeHtml(weekText)}</td>
+      <td class="te-year" data-label="Year / Paper">${escapeHtml(r.paper_year || '')}</td>
+      <td class="te-papers" data-label="Exams">${renderPaperCells(r)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+  updateTrialExamProgress();
+}
+
+function renderPaperCells(r) {
+  let out = '';
+  [1, 2].forEach(p => {
+    if (p === 1 && r.has_exam1 === false) return;
+    if (p === 2 && r.has_exam2 === false) return;
+    const k = `${r.id}:${p}`;
+    const done = !!teProgressMap[k];
+    const mc = teMistakeCounts[k] || 0;
+    const btnCls = mc > 0 ? 'btn-mistakes has-mistakes' : 'btn-mistakes';
+    out += `<span class="te-paper-cell">
+      <span class="te-check${done ? ' done' : ''}" onclick="toggleTrialExam(${jsAttr(r.id)}, ${p})">${done ? '✓' : ''}</span>
+      <span class="te-paper-label${done ? ' done' : ''}">Exam ${p}</span>
+      <button class="${btnCls}" onclick="openMistakeModal(${jsAttr(r.id)}, ${p})">Log mistakes${mc ? `<span class="mistake-count">${mc}</span>` : ''}</button>
+      ${renderPaperFileChips(r.id, p)}
+    </span>`;
+  });
+  return out || '<span style="color:var(--dim);font-size:0.8rem;font-style:italic">—</span>';
+}
+
+function renderPaperFileChips(rowId, paper) {
+  const chips = TE_SLOT_TYPES
+    .filter(t => teFileMap[teSlotKey(rowId, paper, t)])
+    .map(t => {
+      const url = getPublicUrl(teSlotPath(rowId, paper, t));
+      const fname = `Exam ${paper} — ${TE_SLOT_LABELS[t]}.pdf`;
+      return `<a class="te-file-chip" onclick="openModal(${jsAttr(url)}, ${jsAttr(fname)})" title="${escapeHtml(TE_SLOT_LABELS[t])}">
+        <span class="te-chip-icon">${TE_SLOT_ICONS[t]}</span>${escapeHtml(TE_SLOT_LABELS[t])}
+      </a>`;
+    });
+  if (!chips.length) return '';
+  return `<span class="te-files-inline">${chips.join('')}</span>`;
+}
+
+async function toggleTrialExam(examId, paper) {
+  const k = `${examId}:${paper}`;
+  const newVal = !teProgressMap[k];
+  teProgressMap[k] = newVal;
+  renderTrialExams();
+  const { error } = await sb.from('trial_exam_progress').upsert(
+    { user_id: currentUser.id, exam_id: examId, paper, completed: newVal, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,exam_id,paper' }
+  );
+  if (error) { console.error(error); alert('Could not save: ' + error.message); }
+}
+
+function updateTrialExamProgress() {
+  let total = 0, done = 0;
+  trialExams.forEach(r => {
+    [1, 2].forEach(p => {
+      if (p === 1 && r.has_exam1 === false) return;
+      if (p === 2 && r.has_exam2 === false) return;
+      total++;
+      if (teProgressMap[`${r.id}:${p}`]) done++;
+    });
+  });
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const fill = document.getElementById('te-fill');
+  if (fill) fill.style.width = pct + '%';
+  const count = document.getElementById('te-count');
+  if (count) count.textContent = total ? `${done} of ${total} papers complete` : 'No exams yet';
+  const pctEl = document.getElementById('te-pct');
+  if (pctEl) pctEl.textContent = total ? pct + '%' : '';
+}
+
+// ── MISTAKE BOOK MODAL ────────────────────────────────────────────────
+function examLabelFor(examId, paper) {
+  const e = trialExams.find(r => r.id === examId);
+  return e ? `${e.paper_year} — Exam ${paper}` : `Exam ${paper}`;
+}
+
+async function openMistakeModal(examId, paper) {
+  mbEditing = { examId, paper, examLabel: examLabelFor(examId, paper), rows: [] };
+  document.getElementById('mb-title').textContent = `Mistakes — ${mbEditing.examLabel}`;
+  document.getElementById('mb-modal').classList.add('open');
+  document.getElementById('mb-body').innerHTML = '<div class="mb-empty"><span class="spinner"></span> Loading…</div>';
+  const { data, error } = await sb.from('trial_exam_mistakes')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .eq('exam_id', examId)
+    .eq('paper', paper)
+    .order('created_at');
+  if (error) {
+    document.getElementById('mb-body').innerHTML = '<div class="mb-empty">Error loading mistakes.</div>';
+    return;
+  }
+  mbEditing.rows = (data || []).map(r => ({ ...r }));
+  if (!mbEditing.rows.length) mbEditing.rows.push(makeBlankMistakeRow());
+  renderMistakeTable();
+}
+
+function makeBlankMistakeRow() {
+  return { id: null, question: '', mistake: '', learning: '', _new: true };
+}
+
+function renderMistakeTable() {
+  const body = document.getElementById('mb-body');
+  if (!mbEditing) return;
+  const visible = mbEditing.rows.filter(r => !r._deleted);
+  if (!visible.length) {
+    body.innerHTML = '<div class="mb-empty">No mistakes logged. Click <strong>+ Add Mistake</strong> below.</div>';
+    return;
+  }
+  let html = `<table class="mb-table"><thead><tr>
+    <th style="width:90px">Question</th>
+    <th>Mistake</th>
+    <th>Learning for next time</th>
+    <th style="width:36px"></th>
+  </tr></thead><tbody>`;
+  mbEditing.rows.forEach((r, i) => {
+    if (r._deleted) return;
+    html += `<tr>
+      <td data-label="Question"><textarea oninput="mbEditing.rows[${i}].question=this.value" placeholder="Q3a">${escapeHtml(r.question || '')}</textarea></td>
+      <td data-label="Mistake"><textarea oninput="mbEditing.rows[${i}].mistake=this.value" placeholder="What did you get wrong?">${escapeHtml(r.mistake || '')}</textarea></td>
+      <td data-label="Learning"><textarea oninput="mbEditing.rows[${i}].learning=this.value" placeholder="What to remember next time">${escapeHtml(r.learning || '')}</textarea></td>
+      <td class="mb-actions"><button class="btn-delete" onclick="deleteMistakeRow(${i})" title="Delete">✕</button></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  body.innerHTML = html;
+}
+
+function addMistakeRow() {
+  if (!mbEditing) return;
+  mbEditing.rows.push(makeBlankMistakeRow());
+  renderMistakeTable();
+  // Focus the first textarea of the new row
+  const tbody = document.querySelector('#mb-body .mb-table tbody');
+  if (tbody) {
+    const last = tbody.lastElementChild;
+    if (last) last.querySelector('textarea')?.focus();
+  }
+}
+
+function deleteMistakeRow(i) {
+  if (!mbEditing) return;
+  const row = mbEditing.rows[i];
+  if (!row) return;
+  if (row._new) {
+    // Not saved yet — just drop it
+    mbEditing.rows.splice(i, 1);
+  } else {
+    row._deleted = true;
+  }
+  renderMistakeTable();
+}
+
+function closeMistakeModal() {
+  document.getElementById('mb-modal').classList.remove('open');
+  mbEditing = null;
+}
+
+function mbModalBackdrop(e) {
+  if (e.target.id === 'mb-modal') closeMistakeModal();
+}
+
+async function saveMistakes() {
+  if (!mbEditing) return;
+  const { examId, paper } = mbEditing;
+  const isFilled = r => (r.question && r.question.trim()) || (r.mistake && r.mistake.trim()) || (r.learning && r.learning.trim());
+  const toDelete = mbEditing.rows.filter(r => r._deleted && r.id);
+  const toInsert = mbEditing.rows
+    .filter(r => !r._deleted && r._new && isFilled(r))
+    .map(r => ({
+      user_id: currentUser.id, exam_id: examId, paper,
+      question: r.question || null, mistake: r.mistake || null, learning: r.learning || null
+    }));
+  const toUpdate = mbEditing.rows
+    .filter(r => !r._deleted && !r._new && r.id)
+    .map(r => ({
+      id: r.id, user_id: currentUser.id, exam_id: examId, paper,
+      question: r.question || null, mistake: r.mistake || null, learning: r.learning || null,
+      updated_at: new Date().toISOString()
+    }));
+  try {
+    if (toDelete.length) {
+      const { error } = await sb.from('trial_exam_mistakes').delete().in('id', toDelete.map(r => r.id));
+      if (error) throw error;
+    }
+    if (toInsert.length) {
+      const { error } = await sb.from('trial_exam_mistakes').insert(toInsert);
+      if (error) throw error;
+    }
+    if (toUpdate.length) {
+      const { error } = await sb.from('trial_exam_mistakes').upsert(toUpdate);
+      if (error) throw error;
+    }
+    const k = `${examId}:${paper}`;
+    const keptCount = mbEditing.rows.filter(r => !r._deleted && isFilled(r)).length;
+    teMistakeCounts[k] = keptCount;
+    const statusEl = document.getElementById('mb-saved');
+    if (statusEl) {
+      statusEl.classList.add('show');
+      setTimeout(() => statusEl.classList.remove('show'), 1800);
+    }
+    renderTrialExams();
+    closeMistakeModal();
+  } catch (err) {
+    console.error(err);
+    alert('Save failed: ' + (err?.message || err));
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('mb-modal')?.classList.contains('open')) {
+    closeMistakeModal();
+  }
+});
+
+// ── PRINT MISTAKE BOOK ────────────────────────────────────────────────
+async function openMistakeBookPrint() {
+  const container = document.getElementById('print-mistake-book');
+  if (!container) return;
+  // Build off-screen first, then trigger print.
+  const { data, error } = await sb.from('trial_exam_mistakes')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('exam_id').order('paper').order('created_at');
+  if (error) { alert('Could not load mistakes: ' + error.message); return; }
+  const grouped = new Map();
+  (data || []).forEach(m => {
+    const k = `${m.exam_id}:${m.paper}`;
+    if (!grouped.has(k)) grouped.set(k, []);
+    grouped.get(k).push(m);
+  });
+  const studentName = currentUser.user_metadata?.display_name || currentUser.email || '';
+  const today = new Date().toLocaleDateString('en-AU');
+  let html = `<h1>Trial Exam Mistake Book</h1>
+    <div class="pb-meta">${escapeHtml(studentName)} · Generated ${escapeHtml(today)}</div>`;
+  let any = false;
+  trialExams.forEach(r => {
+    [1, 2].forEach(p => {
+      if (p === 1 && r.has_exam1 === false) return;
+      if (p === 2 && r.has_exam2 === false) return;
+      const rows = grouped.get(`${r.id}:${p}`);
+      if (!rows || !rows.length) return;
+      any = true;
+      html += `<h2>${escapeHtml(r.paper_year || '')} — Exam ${p}</h2>
+        <table><thead><tr>
+          <th style="width:14%">Question</th>
+          <th style="width:43%">Mistake</th>
+          <th style="width:43%">Learning</th>
+        </tr></thead><tbody>`;
+      rows.forEach(m => {
+        html += `<tr>
+          <td>${escapeHtml(m.question || '')}</td>
+          <td>${escapeHtml(m.mistake || '')}</td>
+          <td>${escapeHtml(m.learning || '')}</td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+    });
+  });
+  if (!any) html += '<p class="pb-empty">No mistakes logged yet.</p>';
+  container.innerHTML = html;
+  document.body.classList.add('printing-mistake-book');
+  const cleanup = () => {
+    document.body.classList.remove('printing-mistake-book');
+    container.innerHTML = '';
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(() => window.print(), 50);
+}
+
+// ── ADMIN: TRIAL EXAMS ────────────────────────────────────────────────
+function renderAdminTrialExams(rows) {
+  teData = rows.map(r => ({ ...r }));
+  redrawTeTable();
+}
+
+function redrawTeTable() {
+  const tbody = document.getElementById('te-tbody');
+  if (!tbody) return;
+  const visible = teData.filter(r => !r._deleted);
+  if (!visible.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--dim)">No exams yet. Click + Add Exam.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  teData.forEach((r, i) => {
+    if (r._deleted) return;
+    const tr = makeTeRow(r, i);
+    tbody.appendChild(tr);
+    if (tr._fileRow) tbody.appendChild(tr._fileRow);
+  });
+}
+
+function makeTeRow(r, i) {
+  const tr = document.createElement('tr');
+  if (r._new) tr.classList.add('new-row');
+  tr.ondragover  = (e) => onRowDragOver(e, i, 'te');
+  tr.ondrop      = (e) => onRowDrop(e, i, 'te');
+  tr.ondragleave = (e) => onRowDragLeave(e);
+  const visibleIndices = teData.map((row, idx) => !row._deleted ? idx : null).filter(idx => idx !== null);
+  const visiblePos = visibleIndices.indexOf(i);
+  const visibleTotal = visibleIndices.length;
+  const filesBtn = r.id && !r._new
+    ? `<button class="btn-files" onclick="toggleAdminTeFiles(${jsAttr(r.id)}, ${i})">📎 Files</button>`
+    : '<span style="font-size:0.72rem;color:var(--dim)">Save first</span>';
+  tr.innerHTML = `
+    <td><input class="admin-input" type="text" value="${escapeHtml(r.week_commencing || '')}" placeholder="17/5/2026" oninput="teData[${i}].week_commencing=this.value"></td>
+    <td><input class="admin-input" type="text" value="${escapeHtml(r.paper_year || '')}" placeholder="2017 - NHT" oninput="teData[${i}].paper_year=this.value"></td>
+    <td><input class="admin-input" type="text" value="${escapeHtml(r.exams_label || '')}" placeholder="Exams 1 & 2" oninput="teData[${i}].exams_label=this.value"></td>
+    <td style="text-align:center"><input type="checkbox" ${r.has_exam1 === false ? '' : 'checked'} onchange="teData[${i}].has_exam1=this.checked"></td>
+    <td style="text-align:center"><input type="checkbox" ${r.has_exam2 === false ? '' : 'checked'} onchange="teData[${i}].has_exam2=this.checked"></td>
+    <td>${filesBtn}</td>
+    <td style="display:flex;gap:0.3rem;align-items:center;">
+      <span class="drag-handle" draggable="true" ondragstart="onRowDragStart(event, ${i}, 'te')" ondragend="onRowDragEnd(event)" title="Drag to reorder">⋮⋮</span>
+      ${visiblePos > 0 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveTeRow(${i},-1)" title="Move up">▲</button>` : '<span style="width:1.8rem"></span>'}
+      ${visiblePos < visibleTotal - 1 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveTeRow(${i},1)" title="Move down">▼</button>` : '<span style="width:1.8rem"></span>'}
+      <button class="btn-delete" onclick="deleteTeRow(${i})">✕</button>
+    </td>`;
+  if (r.id && !r._new) {
+    const fileRow = document.createElement('tr');
+    fileRow.className = 'admin-file-row';
+    fileRow.id = `admin-te-file-row-${r.id}`;
+    fileRow.innerHTML = `<td colspan="7"><div class="admin-file-panel" id="admin-te-file-panel-${r.id}"></div></td>`;
+    tr._fileRow = fileRow;
+  }
+  return tr;
+}
+
+async function toggleAdminTeFiles(rowId, idx) {
+  const fileRow   = document.getElementById(`admin-te-file-row-${rowId}`);
+  const filePanel = document.getElementById(`admin-te-file-panel-${rowId}`);
+  if (!fileRow) return;
+  const isOpen = fileRow.classList.contains('open');
+  if (isOpen) { fileRow.classList.remove('open'); return; }
+  fileRow.classList.add('open');
+  filePanel.innerHTML = '<span class="upload-status"><span class="spinner"></span> Loading…</span>';
+  const files = await teListRowFiles(rowId);
+  renderAdminTeFilePanel(filePanel, rowId, idx, files);
+}
+
+function renderAdminTeFilePanel(panel, rowId, idx, files) {
+  const r = teData[idx] || {};
+  const present = {}; // {`${paper}:${type}`: true}
+  (files || []).forEach(f => {
+    const parsed = teParseFilename(f.name);
+    if (parsed) present[`${parsed.paper}:${parsed.type}`] = true;
+  });
+  // Sync presence into global teFileMap so student view reflects it after upload/delete
+  TE_SLOT_TYPES.forEach(t => {
+    [1, 2].forEach(p => {
+      if (present[`${p}:${t}`]) teFileMap[teSlotKey(rowId, p, t)] = true;
+      else delete teFileMap[teSlotKey(rowId, p, t)];
+    });
+  });
+
+  const showExam1 = r.has_exam1 !== false;
+  const showExam2 = r.has_exam2 !== false;
+  let html = '';
+  if (showExam1) html += renderAdminTeSlotGroup(rowId, 1, present);
+  if (showExam2) html += renderAdminTeSlotGroup(rowId, 2, present);
+  if (!showExam1 && !showExam2) html = '<span class="upload-status" style="font-style:italic">No papers enabled for this row.</span>';
+  panel.innerHTML = html;
+}
+
+function renderAdminTeSlotGroup(rowId, paper, present) {
+  let inner = '';
+  TE_SLOT_TYPES.forEach(t => {
+    const has = !!present[`${paper}:${t}`];
+    const slotId = `te-slot-${rowId}-${paper}-${t}`;
+    const inputId = `${slotId}-input`;
+    const statusId = `${slotId}-status`;
+    const fileCell = has
+      ? `<span class="te-slot-file">
+          <a class="file-link" onclick="openModal(${jsAttr(getPublicUrl(teSlotPath(rowId, paper, t)))}, ${jsAttr(`Exam ${paper} — ${TE_SLOT_LABELS[t]}.pdf`)})">${TE_SLOT_ICONS[t]} View</a>
+          <button class="btn-delete" onclick="adminDeleteTeSlot(${jsAttr(rowId)}, ${paper}, ${jsAttr(t)})" title="Delete">✕</button>
+        </span>`
+      : `<span class="te-slot-empty">No file yet</span>`;
+    inner += `<div class="te-slot" id="${slotId}">
+      <div class="te-slot-label">${TE_SLOT_ICONS[t]} ${TE_SLOT_LABELS[t]}</div>
+      <div>${fileCell}</div>
+      <div class="te-slot-actions">
+        <input type="file" id="${inputId}" accept=".pdf" onchange="adminUploadTeSlot(${jsAttr(rowId)}, ${paper}, ${jsAttr(t)}, this)">
+        <button class="btn-upload-slot" onclick="document.getElementById('${inputId}').click()">${has ? 'Replace' : 'Upload PDF'}</button>
+        <span class="te-slot-status" id="${statusId}"></span>
+      </div>
+    </div>`;
+  });
+  return `<div class="te-slot-group">
+    <div class="te-slot-group-label">Exam ${paper}</div>
+    ${inner}
+  </div>`;
+}
+
+async function adminUploadTeSlot(rowId, paper, type, inputEl) {
+  const file = inputEl?.files?.[0];
+  if (!file) return;
+  if (!/\.pdf$/i.test(file.name)) { alert('Only PDF files are accepted.'); inputEl.value = ''; return; }
+  const statusEl = document.getElementById(`te-slot-${rowId}-${paper}-${type}-status`);
+  if (statusEl) statusEl.textContent = 'Uploading…';
+  const path = teSlotPath(rowId, paper, type);
+  const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, file, { upsert: true, contentType: 'application/pdf' });
+  if (error) {
+    if (statusEl) statusEl.textContent = '';
+    alert('Upload failed: ' + error.message);
+    return;
+  }
+  teFileMap[teSlotKey(rowId, paper, type)] = true;
+  if (statusEl) {
+    statusEl.textContent = '✓ Uploaded';
+    setTimeout(() => { statusEl.textContent = ''; }, 2000);
+  }
+  inputEl.value = '';
+  // Refresh the panel so the View link appears
+  const files = await teListRowFiles(rowId);
+  const idx = teData.findIndex(r => r.id === rowId);
+  const panel = document.getElementById(`admin-te-file-panel-${rowId}`);
+  if (panel && idx >= 0) renderAdminTeFilePanel(panel, rowId, idx, files);
+}
+
+async function adminDeleteTeSlot(rowId, paper, type) {
+  if (!confirm(`Delete ${TE_SLOT_LABELS[type]} for Exam ${paper}?`)) return;
+  const path = teSlotPath(rowId, paper, type);
+  const { error } = await sb.storage.from(STORAGE_BUCKET).remove([path]);
+  if (error) { alert('Delete failed: ' + error.message); return; }
+  delete teFileMap[teSlotKey(rowId, paper, type)];
+  const files = await teListRowFiles(rowId);
+  const idx = teData.findIndex(r => r.id === rowId);
+  const panel = document.getElementById(`admin-te-file-panel-${rowId}`);
+  if (panel && idx >= 0) renderAdminTeFilePanel(panel, rowId, idx, files);
+}
+
+function addTrialExamRow() {
+  teData.push({
+    id: null,
+    week_commencing: '',
+    paper_year: '',
+    exams_label: 'Exams 1 & 2',
+    has_exam1: true,
+    has_exam2: true,
+    sort_order: teData.length,
+    published: true,
+    _new: true
+  });
+  redrawTeTable();
+}
+
+function deleteTeRow(i) {
+  if (!teData[i]) return;
+  if (teData[i]._new) {
+    teData.splice(i, 1);
+  } else {
+    teData[i]._deleted = true;
+  }
+  redrawTeTable();
+}
+
+function moveTeRow(i, direction) {
+  const visibleIndices = teData.map((r, idx) => !r._deleted ? idx : null).filter(idx => idx !== null);
+  const currentPos = visibleIndices.indexOf(i);
+  if (direction === -1 && currentPos > 0) {
+    const swapIdx = visibleIndices[currentPos - 1];
+    [teData[i], teData[swapIdx]] = [teData[swapIdx], teData[i]];
+    redrawTeTable();
+  } else if (direction === 1 && currentPos < visibleIndices.length - 1) {
+    const swapIdx = visibleIndices[currentPos + 1];
+    [teData[i], teData[swapIdx]] = [teData[swapIdx], teData[i]];
+    redrawTeTable();
+  }
+}
+
+async function saveTrialExams() {
+  const statusEl = document.getElementById('te-saved');
+  const toDelete = teData.filter(r => r._deleted && r.id);
+  let order = 0;
+  const toInsert = [];
+  const toUpdate = [];
+  teData.forEach(r => {
+    if (r._deleted) return;
+    const payload = {
+      week_commencing: r.week_commencing || null,
+      paper_year: r.paper_year || '',
+      exams_label: r.exams_label || '',
+      has_exam1: r.has_exam1 !== false,
+      has_exam2: r.has_exam2 !== false,
+      sort_order: order++,
+      published: r.published !== false
+    };
+    if (r._new) toInsert.push(payload);
+    else toUpdate.push({ id: r.id, ...payload });
+  });
+  try {
+    if (toDelete.length) {
+      const { error } = await sb.from('trial_exams').delete().in('id', toDelete.map(r => r.id));
+      if (error) throw error;
+    }
+    if (toInsert.length) {
+      const { error } = await sb.from('trial_exams').insert(toInsert);
+      if (error) throw error;
+    }
+    if (toUpdate.length) {
+      const { error } = await sb.from('trial_exams').upsert(toUpdate);
+      if (error) throw error;
+    }
+    if (statusEl) {
+      statusEl.classList.add('show');
+      setTimeout(() => statusEl.classList.remove('show'), 2500);
+    }
+    await loadAdminData('trialexams');
+  } catch (err) {
+    console.error(err);
+    alert('Save failed: ' + (err?.message || err));
+  }
+}
