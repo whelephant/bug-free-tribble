@@ -195,21 +195,16 @@
         </div>
       </div>
       <div class="admin-table-wrap">
-        <table class="admin-table">
+        <table class="admin-table admin-table-sched">
           <thead><tr>
-            <th style="width:65px">Term</th>
-            <th style="width:55px">Week #</th>
-            <th style="width:95px">Week Commencing</th>
+            <th style="width:60px">Week #</th>
+            <th style="width:120px">Commencing</th>
             <th>Content</th>
-            <th>Homework</th>
-            <th>Notes</th>
-            <th style="width:75px">VCAA Exam</th>
-            <th style="width:110px">YouTube Link</th>
-            <th style="width:80px">Files</th>
-            <th style="width:36px"></th>
+            <th style="width:170px">Status</th>
+            <th style="width:180px"></th>
           </tr></thead>
           <tbody id="sched-tbody">
-            <tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--dim)"><span class="spinner"></span> Loading…</td></tr>
+            <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--dim)"><span class="spinner"></span> Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -316,6 +311,70 @@
         <button class="btn-ghost" onclick="closeNotesEditor()">Cancel</button>
         <button class="btn-save" onclick="saveNotesEditor()">Save Notes</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE EDIT DRAWER -->
+<div class="sched-drawer" id="sched-drawer" onclick="schedDrawerBackdrop(event)">
+  <div class="sched-drawer-inner">
+    <div class="sched-drawer-header">
+      <span id="sched-drawer-title">Edit Week</span>
+      <button class="notes-modal-close" onclick="closeSchedDrawer()" title="Close (Esc)">✕</button>
+    </div>
+    <div class="sched-drawer-body">
+      <div class="sched-drawer-row">
+        <label class="sched-drawer-label" for="sd-term">Term</label>
+        <select class="admin-select" id="sd-term">
+          <option value="1">Term 1</option>
+          <option value="2">Term 2</option>
+          <option value="3">Term 3</option>
+          <option value="4">Term 4</option>
+        </select>
+      </div>
+      <div class="sched-drawer-row sched-drawer-row-pair">
+        <div>
+          <label class="sched-drawer-label" for="sd-week">Week #</label>
+          <input class="admin-input" id="sd-week" type="number">
+        </div>
+        <div>
+          <label class="sched-drawer-label" for="sd-date">Week Commencing</label>
+          <input class="admin-input" id="sd-date" type="text" placeholder="d/m/yyyy">
+        </div>
+      </div>
+      <div class="sched-drawer-row">
+        <label class="sched-drawer-label" for="schd-content">Content</label>
+        <input class="admin-input" id="schd-content" type="text">
+      </div>
+      <div class="sched-drawer-row">
+        <label class="sched-drawer-label" for="sd-homework">Homework</label>
+        <input class="admin-input" id="sd-homework" type="text">
+      </div>
+      <div class="sched-drawer-row">
+        <span class="sched-drawer-label">Notes</span>
+        <button type="button" class="btn-notes-edit" id="sd-notes-btn" onclick="openNotesEditorFromDrawer()"><span class="notes-empty">+ Add notes</span></button>
+      </div>
+      <div class="sched-drawer-row sched-drawer-row-pair">
+        <div>
+          <label class="sched-drawer-label" for="sd-vcaa">VCAA Exam</label>
+          <input class="admin-input" id="sd-vcaa" type="text" placeholder="e.g. 2010">
+        </div>
+        <div>
+          <label class="sched-drawer-label" for="sd-youtube">YouTube Link</label>
+          <input class="admin-input" id="sd-youtube" type="url" placeholder="https://youtube.com/…">
+        </div>
+      </div>
+      <div class="sched-drawer-row" id="sd-files-row">
+        <span class="sched-drawer-label">Files</span>
+        <div id="sd-files-panel"><span class="upload-status" style="font-style:italic">Save the row first to attach files.</span></div>
+      </div>
+    </div>
+    <div class="sched-drawer-footer">
+      <button class="btn-publish" id="sd-publish-btn" onclick="togglePublishedFromDrawer()">● LIVE</button>
+      <button class="btn-delete sched-drawer-delete" onclick="deleteSchedRowFromDrawer()" title="Delete this row">Delete</button>
+      <div style="flex:1"></div>
+      <span class="notes-hint">Edits save when you press <strong>Save Changes</strong>.</span>
+      <button class="btn-save" onclick="closeSchedDrawer()">Done</button>
     </div>
   </div>
 </div>

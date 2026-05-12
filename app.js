@@ -687,7 +687,7 @@ function redrawSchedTableWithFiles() {
   const tbody = document.getElementById('sched-tbody');
   const visible = schedData.filter(r => !r._deleted);
   if (!visible.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--dim)">No rows yet. Click + Add Row.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;font-style:italic;color:var(--dim)">No rows yet. Click + Add Row.</td></tr>';
     return;
   }
   tbody.innerHTML = '';
@@ -702,7 +702,7 @@ function redrawSchedTableWithFiles() {
     const headerTr = document.createElement('tr');
     headerTr.className = `admin-term-header t${t}${collapsed ? ' collapsed' : ''}`;
     headerTr.dataset.term = t;
-    headerTr.innerHTML = `<td colspan="10" onclick="toggleAdminSchedTerm(${t})">Term ${t}<span class="admin-term-count">${groupCount} ${groupCount === 1 ? 'row' : 'rows'}${draftHtml}</span></td>`;
+    headerTr.innerHTML = `<td colspan="5" onclick="toggleAdminSchedTerm(${t})">Term ${t}<span class="admin-term-count">${groupCount} ${groupCount === 1 ? 'row' : 'rows'}${draftHtml}</span></td>`;
     tbody.appendChild(headerTr);
 
     schedData.forEach((r, i) => {
@@ -712,11 +712,6 @@ function redrawSchedTableWithFiles() {
       tr.dataset.termRow = t;
       if (collapsed) tr.classList.add('collapsed');
       tbody.appendChild(tr);
-      if (tr._fileRow) {
-        tr._fileRow.dataset.termRow = t;
-        if (collapsed) tr._fileRow.classList.add('collapsed');
-        tbody.appendChild(tr._fileRow);
-      }
     });
   });
 }
@@ -734,46 +729,48 @@ function redrawSchedTable() { redrawSchedTableWithFiles(); }
 
 function makeSchedRow(r, i) {
   const tr = document.createElement('tr');
+  tr.classList.add('sched-summary-row');
   if (r._new) tr.classList.add('new-row');
   if (r.published === false) tr.classList.add('draft-row');
   tr.ondragover = (e) => onRowDragOver(e, i, 'sched');
   tr.ondrop     = (e) => onRowDrop(e, i, 'sched');
   tr.ondragleave = (e) => onRowDragLeave(e);
+
   const visibleIndex = schedData.filter((row, idx) => !row._deleted && idx <= i).length - 1;
   const visibleTotal = schedData.filter(row => !row._deleted).length;
   const isLive = r.published !== false;
-  const publishBtn = `<button class="btn-publish ${isLive ? 'live' : 'draft'}" onclick="togglePublished(${i})" title="${isLive ? 'Visible to students — click to hide' : 'Hidden from students — click to publish'}">${isLive ? '● LIVE' : '○ DRAFT'}</button>`;
-  tr.innerHTML = `
-    <td><select class="admin-select" onchange="onSchedTermChange(${i}, this.value)">
-      <option value="1" ${r.term===1?'selected':''}>Term 1</option>
-      <option value="2" ${r.term===2?'selected':''}>Term 2</option>
-      <option value="3" ${r.term===3?'selected':''}>Term 3</option>
-      <option value="4" ${r.term===4?'selected':''}>Term 4</option>
-    </select></td>
-    <td><input class="admin-input" type="number" value="${escapeHtml(r.week_number||'')}" oninput="schedData[${i}].week_number=parseInt(this.value)||0" style="width:48px"></td>
-    <td><input class="admin-input" type="text" value="${escapeHtml(r.week_commencing||'')}" placeholder="d/m/yyyy" oninput="schedData[${i}].week_commencing=this.value"></td>
-    <td><input class="admin-input" type="text" value="${escapeHtml(r.content||'')}" oninput="schedData[${i}].content=this.value"></td>
-    <td><input class="admin-input" type="text" value="${escapeHtml(r.homework||'')}" oninput="schedData[${i}].homework=this.value"></td>
-    <td>${notesButtonHtml(i, r.notes)}</td>
-    <td><input class="admin-input" type="text" value="${escapeHtml(r.vcaa_exam||'')}" oninput="schedData[${i}].vcaa_exam=this.value"></td>
-    <td><input class="admin-input" type="url" value="${escapeHtml(r.youtube_link||'')}" placeholder="https://youtube.com/..." oninput="schedData[${i}].youtube_link=this.value"></td>
-    <td>${r.id && !r._new ? `<button class="btn-files" onclick="toggleAdminFiles(${jsAttr(r.id)}, ${i})">📎 Files</button>` : '<span style="font-size:0.75rem;color:var(--dim)">Save first</span>'}</td>
-    <td style="display:flex;gap:0.3rem;align-items:center;">
-      ${publishBtn}
-      <span class="drag-handle" draggable="true" ondragstart="onRowDragStart(event, ${i}, 'sched')" ondragend="onRowDragEnd(event)" title="Drag to reorder">⋮⋮</span>
-      ${visibleIndex > 0 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveSchedRow(${i},-1)" title="Move up">▲</button>` : '<span style="width:1.8rem"></span>'}
-      ${visibleIndex < visibleTotal - 1 ? `<button class="btn-delete" style="padding:0.2rem 0.4rem;color:var(--blue);" onclick="moveSchedRow(${i},1)" title="Move down">▼</button>` : '<span style="width:1.8rem"></span>'}
-      <button class="btn-delete" onclick="deleteSchedRow(${i})">✕</button>
-    </td>`;
 
-  // Append the file panel row right after (only for saved rows)
-  if (r.id && !r._new) {
-    const fileRow = document.createElement('tr');
-    fileRow.className = 'admin-file-row';
-    fileRow.id = `admin-file-row-${r.id}`;
-    fileRow.innerHTML = `<td colspan="10"><div class="admin-file-panel" id="admin-file-panel-${r.id}"></div></td>`;
-    tr._fileRow = fileRow;
-  }
+  const wkNum = (r.week_number ?? '').toString().trim() || '—';
+  const date  = (r.week_commencing || '').trim();
+  const content = (r.content || '').trim();
+  const homework = (r.homework || '').trim();
+  const hasNotes = !!(r.notes && r.notes.trim());
+
+  const dots = [];
+  if (hasNotes) dots.push('<span class="sched-dot" title="Has notes">📝</span>');
+  if (r.vcaa_exam) dots.push(`<span class="sched-dot sched-dot-text" title="VCAA ${escapeHtml(r.vcaa_exam)}">${escapeHtml(r.vcaa_exam)}</span>`);
+  if (r.youtube_link) dots.push('<span class="sched-dot" title="YouTube link">▶</span>');
+  if (r.id && !r._new) dots.push('<span class="sched-dot" title="Files">📎</span>');
+
+  const publishBtn = `<button class="btn-publish ${isLive ? 'live' : 'draft'}" onclick="event.stopPropagation();togglePublished(${i})" title="${isLive ? 'Visible to students — click to hide' : 'Hidden from students — click to publish'}">${isLive ? '● LIVE' : '○ DRAFT'}</button>`;
+
+  tr.innerHTML = `
+    <td class="sched-cell-w" onclick="openSchedDrawer(${i})"><span class="sched-w">${escapeHtml(wkNum)}</span></td>
+    <td class="sched-cell-date" onclick="openSchedDrawer(${i})">${date ? escapeHtml(date) : '<span class="sched-placeholder">No date</span>'}</td>
+    <td class="sched-cell-content" onclick="openSchedDrawer(${i})">
+      <div class="sched-content-text">${content ? escapeHtml(content) : '<span class="sched-placeholder">No content yet</span>'}</div>
+      ${homework ? `<div class="sched-content-sub"><span class="sched-content-tag">HW</span> ${escapeHtml(homework)}</div>` : ''}
+    </td>
+    <td class="sched-cell-status">
+      ${publishBtn}
+      <div class="sched-dots">${dots.join('')}</div>
+    </td>
+    <td class="sched-cell-actions">
+      <button class="btn-edit-row" onclick="openSchedDrawer(${i})" title="Edit this week">Edit</button>
+      <span class="drag-handle" draggable="true" ondragstart="onRowDragStart(event, ${i}, 'sched')" ondragend="onRowDragEnd(event)" title="Drag to reorder">⋮⋮</span>
+      ${visibleIndex > 0 ? `<button class="btn-row-arrow" onclick="event.stopPropagation();moveSchedRow(${i},-1)" title="Move up">▲</button>` : '<span class="btn-row-arrow-spacer"></span>'}
+      ${visibleIndex < visibleTotal - 1 ? `<button class="btn-row-arrow" onclick="event.stopPropagation();moveSchedRow(${i},1)" title="Move down">▼</button>` : '<span class="btn-row-arrow-spacer"></span>'}
+    </td>`;
 
   return tr;
 }
@@ -1131,6 +1128,8 @@ function saveNotesEditor() {
   schedData[notesEditingIdx].notes = document.getElementById('notes-editor').value;
   closeNotesEditor();
   redrawSchedTable();
+  // If the drawer is open behind the notes modal, refresh its notes button preview.
+  if (schedDrawerRow) syncDrawerFromRow();
 }
 
 function updateNotesPreview() {
@@ -1185,10 +1184,126 @@ function notesFmt(type) {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && document.getElementById('notes-modal')?.classList.contains('open')) {
+  if (e.key !== 'Escape') return;
+  // Notes modal takes precedence (it sits on top of the drawer)
+  if (document.getElementById('notes-modal')?.classList.contains('open')) {
     closeNotesEditor();
+  } else if (document.getElementById('sched-drawer')?.classList.contains('open')) {
+    closeSchedDrawer();
   }
 });
+
+// ── SCHEDULE EDIT DRAWER ──────────────────────────────────────────────
+// Tracks the row currently being edited in the side drawer. We hold a
+// reference to the row object (not its index) so that array reorders
+// from drag/drop or up/down arrows don't make the drawer edit a different row.
+let schedDrawerRow = null;
+
+function openSchedDrawer(i) {
+  const row = schedData[i];
+  if (!row || row._deleted) return;
+  schedDrawerRow = row;
+  syncDrawerFromRow();
+  document.getElementById('sched-drawer').classList.add('open');
+  document.body.classList.add('drawer-open');
+}
+
+function closeSchedDrawer() {
+  document.getElementById('sched-drawer').classList.remove('open');
+  document.body.classList.remove('drawer-open');
+  if (schedDrawerRow) {
+    schedDrawerRow = null;
+    redrawSchedTable();
+  }
+}
+
+function schedDrawerBackdrop(e) {
+  if (e.target.id === 'sched-drawer') closeSchedDrawer();
+}
+
+function syncDrawerFromRow() {
+  const r = schedDrawerRow;
+  if (!r) return;
+
+  document.getElementById('sched-drawer-title').textContent =
+    `Edit Week ${r.week_number ?? '?'} — Term ${r.term ?? '?'}`;
+
+  const termSel = document.getElementById('sd-term');
+  termSel.value = String(r.term || 2);
+  document.getElementById('sd-week').value     = r.week_number ?? '';
+  document.getElementById('sd-date').value     = r.week_commencing || '';
+  document.getElementById('schd-content').value = r.content || '';
+  document.getElementById('sd-homework').value = r.homework || '';
+  document.getElementById('sd-vcaa').value     = r.vcaa_exam || '';
+  document.getElementById('sd-youtube').value  = r.youtube_link || '';
+
+  // Notes button shows a snippet of any existing notes
+  const notesBtn = document.getElementById('sd-notes-btn');
+  if (r.notes && r.notes.trim()) {
+    const trimmed = r.notes.replace(/\s+/g, ' ').trim();
+    const snippet = trimmed.length > 80 ? trimmed.slice(0, 80) + '…' : trimmed;
+    notesBtn.innerHTML = `<span class="notes-snippet">${escapeHtml(snippet)}</span>`;
+  } else {
+    notesBtn.innerHTML = '<span class="notes-empty">+ Add notes</span>';
+  }
+
+  // Publish badge mirrors the schedule's draft/live state
+  const pubBtn = document.getElementById('sd-publish-btn');
+  const isLive = r.published !== false;
+  pubBtn.className = `btn-publish ${isLive ? 'live' : 'draft'}`;
+  pubBtn.textContent = isLive ? '● LIVE' : '○ DRAFT';
+  pubBtn.title = isLive ? 'Visible to students — click to hide' : 'Hidden from students — click to publish';
+
+  // Files panel reuses the existing admin file panel renderer
+  const filesPanel = document.getElementById('sd-files-panel');
+  if (r.id && !r._new) {
+    filesPanel.innerHTML = '<span class="upload-status"><span class="spinner"></span> Loading…</span>';
+    loadRowFiles(r.id).then(files => {
+      if (schedDrawerRow !== r) return; // drawer closed or switched rows
+      renderAdminFilePanel(filesPanel, r.id, files);
+    });
+  } else {
+    filesPanel.innerHTML = '<span class="upload-status" style="font-style:italic">Save the row first to attach files.</span>';
+  }
+
+  bindDrawerInput('sd-term',     v => { r.term = parseInt(v); _adminSchedCollapsed.delete(r.term); });
+  bindDrawerInput('sd-week',     v => { r.week_number = parseInt(v) || 0; });
+  bindDrawerInput('sd-date',     v => { r.week_commencing = v; });
+  bindDrawerInput('schd-content', v => { r.content = v; });
+  bindDrawerInput('sd-homework', v => { r.homework = v; });
+  bindDrawerInput('sd-vcaa',     v => { r.vcaa_exam = v; });
+  bindDrawerInput('sd-youtube',  v => { r.youtube_link = v; });
+}
+
+function bindDrawerInput(id, setter) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const handler = (e) => setter(e.target.value);
+  el.oninput = handler;
+  el.onchange = handler;
+}
+
+function openNotesEditorFromDrawer() {
+  if (!schedDrawerRow) return;
+  const idx = schedData.indexOf(schedDrawerRow);
+  if (idx >= 0) openNotesEditor(idx);
+}
+
+function togglePublishedFromDrawer() {
+  if (!schedDrawerRow) return;
+  schedDrawerRow.published = schedDrawerRow.published === false ? true : false;
+  const isLive = schedDrawerRow.published !== false;
+  const pubBtn = document.getElementById('sd-publish-btn');
+  pubBtn.className = `btn-publish ${isLive ? 'live' : 'draft'}`;
+  pubBtn.textContent = isLive ? '● LIVE' : '○ DRAFT';
+}
+
+function deleteSchedRowFromDrawer() {
+  if (!schedDrawerRow) return;
+  if (!confirm('Delete this week from the schedule?')) return;
+  schedDrawerRow._deleted = true;
+  closeSchedDrawer();
+}
 
 // ── THEME ─────────────────────────────────────────────────────────────
 function toggleTheme() {
