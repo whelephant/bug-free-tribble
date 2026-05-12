@@ -186,6 +186,22 @@ main { max-width: 1200px; margin: 0 auto; padding: 3rem 3rem 4rem; }
 .week-row { cursor: pointer; transition: background 0.08s; }
 .week-row:hover td { background: var(--hero-bg); }
 .week-row.open td { background: var(--hero-bg); }
+
+/* CURRENT WEEK — highlight the row whose week_commencing covers today */
+.week-row.current-week td { background: rgba(204, 255, 0, 0.18); }
+.week-row.current-week td:first-child { box-shadow: inset 4px 0 0 var(--hl); }
+.week-row.current-week:hover td,
+.week-row.current-week.open td { background: rgba(204, 255, 0, 0.32); }
+.term-label-text { display: inline-flex; align-items: center; gap: 0.55rem; }
+.current-week-chip {
+  display: inline-flex; align-items: center;
+  padding: 0.15rem 0.5rem 0.25rem;
+  background: var(--hl); color: var(--hl-ink);
+  font-size: 0.58rem; font-weight: 900; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer; transition: filter 0.1s;
+}
+.current-week-chip:hover { filter: brightness(0.92); }
 .week-row td:first-child { position: relative; padding-left: 2.4rem; }
 .week-row td:first-child::before {
   content: '+';

@@ -295,7 +295,37 @@ async function loadSchedule() {
 
 const TERM_META = { 1:{label:'Term 1',cls:'t1'}, 2:{label:'Term 2',cls:'t2'}, 3:{label:'Term 3',cls:'t3'}, 4:{label:'Term 4',cls:'t4'} };
 
+// Parse a d/m/yyyy (or d-m-yyyy) string into a Date at local midnight.
+function parseDMY(s) {
+  if (!s) return null;
+  const m = String(s).match(/^\s*(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})\s*$/);
+  if (!m) return null;
+  const dt = new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+// Returns the id of the row whose [week_commencing, +7d) window contains today,
+// or null if today doesn't fall inside any scheduled week.
+function findCurrentWeekId(rows) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (const r of rows) {
+    const start = parseDMY(r.week_commencing);
+    if (!start) continue;
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+    if (today >= start && today < end) return r.id;
+  }
+  return null;
+}
+
+function scrollToCurrentWeek() {
+  const el = document.querySelector('.week-row.current-week');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function renderSchedule(rows) {
+  const currentRowId = findCurrentWeekId(rows);
   let html = '';
   [1,2,3,4].forEach(t => {
     const group = rows.filter(r => r.term === t);
@@ -305,8 +335,9 @@ function renderSchedule(rows) {
     const hasVcaa  = group.some(r => r.vcaa_exam);
     const hasYoutube = group.some(r => r.youtube_link);
     const colCount = (hasDates ? 1 : 0) + 3 + (hasVcaa ? 1 : 0) + (hasYoutube ? 1 : 0);
+    const groupHasCurrent = currentRowId != null && group.some(r => String(r.id) === String(currentRowId));
 
-    html += `<div class="term-block collapsed" data-term="${t}"><div class="term-label ${cls}" onclick="toggleTerm(${t})">${label}</div>
+    html += `<div class="term-block${groupHasCurrent ? '' : ' collapsed'}" data-term="${t}"><div class="term-label ${cls}" onclick="toggleTerm(${t})"><span class="term-label-text">${label}${groupHasCurrent ? `<span class="current-week-chip" onclick="event.stopPropagation();scrollToCurrentWeek()" title="Jump to this week">● This week</span>` : ''}</span></div>
     <table class="schedule-table"><thead><tr>`;
     if (hasDates) html += `<th>Week Commencing</th>`;
     html += `<th>Week</th><th>Content</th><th>Homework</th>`;
@@ -316,7 +347,8 @@ function renderSchedule(rows) {
 
     group.forEach(r => {
       const rid = r.id;
-      html += `<tr class="week-row" onclick="toggleDrawer(${jsAttr(rid)}, ${colCount})">`;
+      const isCurrent = currentRowId != null && String(rid) === String(currentRowId);
+      html += `<tr class="week-row${isCurrent ? ' current-week' : ''}" onclick="toggleDrawer(${jsAttr(rid)}, ${colCount})">`;
       if (hasDates) html += `<td class="dt" data-label="Week Commencing">${escapeHtml(r.week_commencing||'')}</td>`;
       html += `<td class="wk" data-label="Week">Week ${escapeHtml(r.week_number||'')}</td><td data-label="Content">${escapeHtml(r.content||'')}</td><td data-label="Homework">${escapeHtml(r.homework||'')}</td>`;
       if (hasVcaa)  html += `<td data-label="VCAA Exam">${escapeHtml(r.vcaa_exam||'')}</td>`;
@@ -1056,7 +1088,7 @@ async function saveHomework() {
   const statusEl = document.getElementById('hw-saved');
   const toDelete  = hwData.filter(r => r._deleted && r.id && !r._new);
   const toInsert  = hwData.filter(r => !r._deleted && r._new).map((r, i) => ({
-    id: generateHomeworkId(),
+    id: generateHomeworkId(i),
     term: r.term, week_label: r.week_label || null, text: r.text || '', sort_order: i
   }));
   const toUpdate  = hwData.filter(r => !r._deleted && !r._new && r.id).map((r, i) => ({
@@ -1085,10 +1117,10 @@ async function saveHomework() {
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────
-function generateHomeworkId() {
+function generateHomeworkId(offset = 0) {
   const existingIds = hwData.map(r => r.id).filter(id => id && id.startsWith('hw')).map(id => parseInt(id.replace('hw', '')) || 0);
   const maxNum = existingIds.length > 0 ? Math.max(...existingIds) : 0;
-  return 'hw' + (maxNum + 1);
+  return 'hw' + (maxNum + 1 + offset);
 }
 
 function showMsg(el, text, type) { el.textContent = text; el.className = 'msg ' + type; }
