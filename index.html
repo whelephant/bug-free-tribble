@@ -191,6 +191,7 @@
         <div style="display:flex;gap:0.5rem;align-items:center;">
           <span class="save-status" id="sched-saved">✓ Saved</span>
           <button class="btn-add" onclick="addScheduleRow()">+ Add Row</button>
+          <button class="btn-add" onclick="addHolidayRow()">+ Holiday break</button>
           <button class="btn-save" onclick="saveSchedule()">Save Changes</button>
         </div>
       </div>
@@ -323,7 +324,7 @@
       <button class="notes-modal-close" onclick="closeSchedDrawer()" title="Close (Esc)">✕</button>
     </div>
     <div class="sched-drawer-body">
-      <div class="sched-drawer-row">
+      <div class="sched-drawer-row" id="sd-row-term">
         <label class="sched-drawer-label" for="sd-term">Term</label>
         <select class="admin-select" id="sd-term">
           <option value="1">Term 1</option>
@@ -332,7 +333,7 @@
           <option value="4">Term 4</option>
         </select>
       </div>
-      <div class="sched-drawer-row sched-drawer-row-pair">
+      <div class="sched-drawer-row sched-drawer-row-pair" id="sd-row-weekdate">
         <div>
           <label class="sched-drawer-label" for="sd-week">Week #</label>
           <input class="admin-input" id="sd-week" type="number">
@@ -343,18 +344,18 @@
         </div>
       </div>
       <div class="sched-drawer-row">
-        <label class="sched-drawer-label" for="schd-content">Content</label>
+        <label class="sched-drawer-label" for="schd-content" id="sd-content-label">Content</label>
         <input class="admin-input" id="schd-content" type="text">
       </div>
       <div class="sched-drawer-row">
         <label class="sched-drawer-label" for="sd-homework">Homework</label>
         <input class="admin-input" id="sd-homework" type="text">
       </div>
-      <div class="sched-drawer-row">
+      <div class="sched-drawer-row" id="sd-row-notes">
         <span class="sched-drawer-label">Notes</span>
         <button type="button" class="btn-notes-edit" id="sd-notes-btn" onclick="openNotesEditorFromDrawer()"><span class="notes-empty">+ Add notes</span></button>
       </div>
-      <div class="sched-drawer-row sched-drawer-row-pair">
+      <div class="sched-drawer-row sched-drawer-row-pair" id="sd-row-extras">
         <div>
           <label class="sched-drawer-label" for="sd-vcaa">VCAA Exam</label>
           <input class="admin-input" id="sd-vcaa" type="text" placeholder="e.g. 2010">

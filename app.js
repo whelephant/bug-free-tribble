@@ -324,12 +324,25 @@ function scrollToCurrentWeek() {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+// Renders a holiday break block (title + homework line) from a schedule row
+// flagged with is_holiday. Uses `content` as the title and `homework` as the body.
+function holidayBlockHtml(r) {
+  const title = (r.content || '').trim() || 'Holidays';
+  const hw = (r.homework || '').trim();
+  return `<div class="holiday-block">
+    <div class="holiday-label">${escapeHtml(title)}</div>
+    ${hw ? `<div class="holiday-body"><strong>Homework:</strong> ${escapeHtml(hw)}</div>` : ''}
+  </div>`;
+}
+
 function renderSchedule(rows) {
   const currentRowId = findCurrentWeekId(rows);
   let html = '';
   [1,2,3,4].forEach(t => {
-    const group = rows.filter(r => r.term === t);
-    if (!group.length) return;
+    const group = rows.filter(r => r.term === t && !r.is_holiday);
+    const holidays = rows.filter(r => r.term === t && r.is_holiday);
+    if (!group.length && !holidays.length) return;
+    if (!group.length) { holidays.forEach(h => { html += holidayBlockHtml(h); }); return; }
     const { label, cls } = TERM_META[t];
     const hasDates = group.some(r => r.week_commencing);
     const hasVcaa  = group.some(r => r.vcaa_exam);
@@ -367,6 +380,9 @@ function renderSchedule(rows) {
     });
 
     html += `</tbody></table></div>`;
+
+    // Holiday break blocks that belong to this term (rendered after its table)
+    holidays.forEach(h => { html += holidayBlockHtml(h); });
   });
 
   if (!html) html = '<div class="empty-state">No schedule yet — check back soon.</div>';
@@ -772,6 +788,32 @@ function makeSchedRow(r, i) {
   const visibleTotal = schedData.filter(row => !row._deleted).length;
   const isLive = r.published !== false;
 
+  const publishBtnEl = `<button class="btn-publish ${isLive ? 'live' : 'draft'}" onclick="event.stopPropagation();togglePublished(${i})" title="${isLive ? 'Visible to students — click to hide' : 'Hidden from students — click to publish'}">${isLive ? '● LIVE' : '○ DRAFT'}</button>`;
+  const rowActions = `
+    <td class="sched-cell-actions">
+      <button class="btn-edit-row" onclick="openSchedDrawer(${i})" title="Edit">Edit</button>
+      <span class="drag-handle" draggable="true" ondragstart="onRowDragStart(event, ${i}, 'sched')" ondragend="onRowDragEnd(event)" title="Drag to reorder">⋮⋮</span>
+      ${visibleIndex > 0 ? `<button class="btn-row-arrow" onclick="event.stopPropagation();moveSchedRow(${i},-1)" title="Move up">▲</button>` : '<span class="btn-row-arrow-spacer"></span>'}
+      ${visibleIndex < visibleTotal - 1 ? `<button class="btn-row-arrow" onclick="event.stopPropagation();moveSchedRow(${i},1)" title="Move down">▼</button>` : '<span class="btn-row-arrow-spacer"></span>'}
+    </td>`;
+
+  // Holiday break rows get a distinct, compact layout.
+  if (r.is_holiday) {
+    tr.classList.add('sched-holiday-row');
+    const title = (r.content || '').trim() || 'Holidays';
+    const hw = (r.homework || '').trim();
+    tr.innerHTML = `
+      <td class="sched-cell-w" onclick="openSchedDrawer(${i})"><span class="sched-holiday-badge" title="Holiday break">BREAK</span></td>
+      <td class="sched-cell-date" onclick="openSchedDrawer(${i})"></td>
+      <td class="sched-cell-content" onclick="openSchedDrawer(${i})">
+        <div class="sched-content-text">${escapeHtml(title)}</div>
+        ${hw ? `<div class="sched-content-sub"><span class="sched-content-tag">HW</span> ${escapeHtml(hw)}</div>` : ''}
+      </td>
+      <td class="sched-cell-status">${publishBtnEl}</td>
+      ${rowActions}`;
+    return tr;
+  }
+
   const wkNum = (r.week_number ?? '').toString().trim() || '—';
   const date  = (r.week_commencing || '').trim();
   const content = (r.content || '').trim();
@@ -911,6 +953,24 @@ function addScheduleRow() {
   redrawSchedTable();
 }
 
+// Adds a holiday break block. Stored as a schedule row flagged is_holiday;
+// `content` holds the title and `homework` the homework line. Defaults to a
+// Term 2 break (sits between Term 2 and Term 3) — change the term in the editor.
+function addHolidayRow() {
+  schedData.push({
+    id: null,
+    term: 2,
+    week_number: 0,
+    week_commencing: '', content: 'Winter Holidays',
+    homework: 'Complete the set VCAA exams.', notes: '', vcaa_exam: '',
+    youtube_link: '', sort_order: schedData.length, _new: true,
+    is_holiday: true,
+    published: false  // start as draft so admins can plan without it going live
+  });
+  _adminSchedCollapsed.delete(2);
+  redrawSchedTable();
+}
+
 function togglePublished(i) {
   schedData[i].published = schedData[i].published === false ? true : false;
   redrawSchedTable();
@@ -960,7 +1020,8 @@ async function saveSchedule() {
       content: r.content || null, homework: r.homework || null,
       notes: r.notes || null, vcaa_exam: r.vcaa_exam || null,
       youtube_link: r.youtube_link || null, sort_order: i,
-      published: r.published !== false
+      published: r.published !== false,
+      is_holiday: r.is_holiday === true
     };
   });
   const ops = [];
@@ -1257,8 +1318,18 @@ function syncDrawerFromRow() {
   const r = schedDrawerRow;
   if (!r) return;
 
-  document.getElementById('sched-drawer-title').textContent =
-    `Edit Week ${r.week_number ?? '?'} — Term ${r.term ?? '?'}`;
+  const isHoliday = r.is_holiday === true;
+  document.getElementById('sched-drawer-title').textContent = isHoliday
+    ? 'Edit holiday break'
+    : `Edit Week ${r.week_number ?? '?'} — Term ${r.term ?? '?'}`;
+
+  // Holiday breaks only need a title + homework; hide the week-specific fields.
+  const toggle = (id, show) => { const el = document.getElementById(id); if (el) el.style.display = show ? '' : 'none'; };
+  toggle('sd-row-weekdate', !isHoliday);
+  toggle('sd-row-notes', !isHoliday);
+  toggle('sd-row-extras', !isHoliday);
+  toggle('sd-files-row', !isHoliday);
+  document.getElementById('sd-content-label').textContent = isHoliday ? 'Title' : 'Content';
 
   const termSel = document.getElementById('sd-term');
   termSel.value = String(r.term || 2);

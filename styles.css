@@ -241,6 +241,14 @@ main { max-width: 1200px; margin: 0 auto; padding: 3rem 3rem 4rem; }
   color: var(--ink);
   font-weight: 500;
 }
+/* HOLIDAY BREAK BLOCK (between terms) */
+.holiday-block { margin-bottom: 2.5rem; border: 1px dashed var(--rule); background: var(--surface); }
+.holiday-label { font-weight: 900; font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 0.75rem 1.2rem; border-bottom: 1px dashed var(--rule); color: var(--ink); }
+.holiday-body { padding: 1rem 1.2rem; font-size: 0.86rem; line-height: 1.6; color: var(--ink); font-weight: 500; }
+.holiday-body strong { font-weight: 800; }
+/* admin: holiday break row badge */
+.sched-holiday-badge { display: inline-block; font-size: 0.55rem; font-weight: 900; letter-spacing: 0.12em; padding: 0.15rem 0.4rem; border: 1px dashed var(--rule); color: var(--dim); }
+
 .week-note strong { font-weight: 800; }
 .week-note em { color: var(--dim); }
 .week-note a { color: var(--ink); text-decoration: none; background: var(--hl); padding: 0 5px 2px; font-style: italic; font-weight: 700; }
