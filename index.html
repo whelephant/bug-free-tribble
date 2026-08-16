@@ -120,6 +120,7 @@
     <div class="tab" onclick="switchTab('homework',this)">Homework</div>
     <div class="tab" onclick="switchTab('studydesign',this)">Study Design</div>
     <div class="tab" onclick="switchTab('trialexams',this)">Trial Exams</div>
+    <div class="tab" onclick="switchTab('checklist',this)">Checklist</div>
   </nav>
   <main>
     <div class="panel active" id="panel-schedule">
@@ -150,7 +151,10 @@
     <div class="panel" id="panel-trialexams">
       <div class="section-head">
         <h2>Trial Exams</h2>
-        <button class="btn-outline" onclick="openMistakeBookPrint()">Print Mistake Book</button>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+          <button class="btn-outline" id="btn-standalone-mistakes" onclick="openStandaloneMistakeModal()">Log Other Mistakes<span id="standalone-count-badge" class="mistake-count" style="display:none"></span></button>
+          <button class="btn-outline" onclick="openMistakeBookPrint()">Print Mistake Book</button>
+        </div>
       </div>
       <div class="week-note">
         <p style="margin:0;">This is the bulk of your exam revision, and it is critical you complete it all.</p>
@@ -164,6 +168,16 @@
       <div class="hw-progress-label" style="margin-top:1.2rem;"><span id="te-count">Loading…</span><span id="te-pct"></span></div>
       <div class="hw-bar"><div class="hw-bar-fill" id="te-fill" style="width:0%"></div></div>
       <div id="te-content"><div class="empty-state"><span class="spinner"></span> Loading trial exams…</div></div>
+    </div>
+    <div class="panel" id="panel-checklist">
+      <div class="section-head">
+        <h2>Study Checklists</h2>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+          <button class="btn-outline" onclick="openChecklistPrint()">Print Checklist</button>
+          <button class="btn-add" onclick="addCategory()">+ Add Category</button>
+        </div>
+      </div>
+      <div id="cl-content"><div class="empty-state"><span class="spinner"></span> Loading checklists…</div></div>
     </div>
   </main>
   <footer>Daniel Gao</footer>
@@ -401,5 +415,12 @@
 
 <!-- PRINT-ONLY MISTAKE BOOK (populated on demand) -->
 <div id="print-mistake-book" aria-hidden="true"></div>
+<!-- PRINT-ONLY CHECKLIST (populated on demand) -->
+<div id="print-checklist" aria-hidden="true"></div>
+<!-- SCREENSHOT LIGHTBOX -->
+<div id="img-lightbox" onclick="closeLightbox(event)">
+  <img id="lightbox-img" src="" alt="Screenshot">
+  <button id="lightbox-close" onclick="closeLightbox()" title="Close">✕</button>
+</div>
 </body>
 </html>

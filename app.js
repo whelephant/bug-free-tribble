@@ -1,9 +1,10 @@
 // ── CONFIG ────────────────────────────────────────────────────────────
 const SUPABASE_URL      = 'https://gdxrfbjavtuivaarzvjl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkeHJmYmphdnR1aXZhYXJ6dmpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNTAxNDUsImV4cCI6MjA5MDgyNjE0NX0.UwTbld0t0L6_tYRiiI0OsOQIkvUdnfRfxI-EXviXfTI';
-const STORAGE_BUCKET    = 'resources';
+const STORAGE_BUCKET       = 'resources';
+const SCREENSHOTS_BUCKET   = 'mistake-screenshots';
 // VCE Methods exam date — update when VCAA confirms the 2026 timetable.
-const EXAM_DATE  = '2026-10-29';
+const EXAM_DATE  = '2026-11-05';
 const EXAM_LABEL = 'Methods Exam 1';
 // ─────────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,11 @@ let teProgressMap = {};      // key = `${exam_id}:${paper}` -> boolean
 let teMistakeCounts = {};    // key = `${exam_id}:${paper}` -> number (for badge)
 let teData = [];             // admin draft buffer
 let usersData = [];          // admin users list
-let mbEditing = null;        // {examId, paper, examLabel, rows: [...]}
+let mbEditing = null;        // {examId, paper, examLabel, rows: [...], isStandalone}
+let standaloneCount = 0;     // badge on the "Log Other Mistakes" button
+let screenshotUrlCache = new Map(); // path → signed URL
+let clCategories = [];       // checklist categories
+let clItems = [];            // checklist items
 
 // ── SCREEN HELPER ─────────────────────────────────────────────────────
 function showScreen(id) {
@@ -122,7 +127,7 @@ async function enterApp() {
   document.getElementById('user-label').textContent = name;
   showScreen('screen-app');
   updateExamCountdown();
-  await Promise.all([loadSchedule(), loadHomework(), loadStudyDesign(), loadTrialExams()]);
+  await Promise.all([loadSchedule(), loadHomework(), loadStudyDesign(), loadTrialExams(), loadChecklist()]);
 }
 
 function updateExamCountdown() {
@@ -1536,10 +1541,11 @@ function teParseFilename(name) {
 
 // ── TRIAL EXAMS (student view) ────────────────────────────────────────
 async function loadTrialExams() {
-  const [examsRes, progRes, mistakesRes] = await Promise.all([
+  const [examsRes, progRes, mistakesRes, standaloneRes] = await Promise.all([
     sb.from('trial_exams').select('*').eq('published', true).order('sort_order'),
     sb.from('trial_exam_progress').select('*').eq('user_id', currentUser.id),
-    sb.from('trial_exam_mistakes').select('exam_id,paper').eq('user_id', currentUser.id)
+    sb.from('trial_exam_mistakes').select('exam_id,paper').eq('user_id', currentUser.id).not('exam_id', 'is', null),
+    sb.from('trial_exam_mistakes').select('id').eq('user_id', currentUser.id).is('exam_id', null)
   ]);
   if (examsRes.error) {
     document.getElementById('te-content').innerHTML = '<div class="empty-state">Error loading trial exams.</div>';
@@ -1553,6 +1559,7 @@ async function loadTrialExams() {
     const k = `${m.exam_id}:${m.paper}`;
     teMistakeCounts[k] = (teMistakeCounts[k] || 0) + 1;
   });
+  standaloneCount = (standaloneRes.data || []).length;
   // Fetch storage contents for all exam rows in parallel — populates teFileMap
   teFileMap = {};
   const lists = await Promise.all(trialExams.map(r => teListRowFiles(r.id)));
@@ -1563,6 +1570,7 @@ async function loadTrialExams() {
     });
   });
   renderTrialExams();
+  renderStandaloneBadge();
 }
 
 function renderTrialExams() {
@@ -1660,38 +1668,58 @@ function examLabelFor(examId, paper) {
 }
 
 async function openMistakeModal(examId, paper) {
-  mbEditing = { examId, paper, examLabel: examLabelFor(examId, paper), rows: [] };
-  document.getElementById('mb-title').textContent = `Mistakes — ${mbEditing.examLabel}`;
+  const isStandalone = !examId;
+  const label = isStandalone ? 'Other Mistakes' : examLabelFor(examId, paper);
+  mbEditing = { examId: examId || null, paper: paper || null, examLabel: label, rows: [], isStandalone };
+  document.getElementById('mb-title').textContent = `Mistakes — ${label}`;
   document.getElementById('mb-modal').classList.add('open');
   document.getElementById('mb-body').innerHTML = '<div class="mb-empty"><span class="spinner"></span> Loading…</div>';
-  const { data, error } = await sb.from('trial_exam_mistakes')
+  let query = sb.from('trial_exam_mistakes')
     .select('*')
     .eq('user_id', currentUser.id)
-    .eq('exam_id', examId)
-    .eq('paper', paper)
     .order('created_at');
+  query = isStandalone ? query.is('exam_id', null) : query.eq('exam_id', examId).eq('paper', paper);
+  const { data, error } = await query;
   if (error) {
     document.getElementById('mb-body').innerHTML = '<div class="mb-empty">Error loading mistakes.</div>';
     return;
+  }
+  // Pre-generate signed URLs for screenshots in this batch
+  if (isStandalone) {
+    const paths = (data || []).filter(r => r.screenshot_path).map(r => r.screenshot_path);
+    if (paths.length) {
+      await Promise.all(paths.map(async path => {
+        if (!screenshotUrlCache.has(path)) {
+          const { data: ud } = await sb.storage.from(SCREENSHOTS_BUCKET).createSignedUrl(path, 86400);
+          if (ud?.signedUrl) screenshotUrlCache.set(path, ud.signedUrl);
+        }
+      }));
+    }
   }
   mbEditing.rows = (data || []).map(r => ({ ...r }));
   if (!mbEditing.rows.length) mbEditing.rows.push(makeBlankMistakeRow());
   renderMistakeTable();
 }
 
+function openStandaloneMistakeModal() {
+  openMistakeModal(null, null);
+}
+
 function makeBlankMistakeRow() {
-  return { id: null, question: '', mistake: '', learning: '', _new: true };
+  return { id: null, question: '', mistake: '', learning: '', source: '', screenshot_path: null, _new: true };
 }
 
 function renderMistakeTable() {
   const body = document.getElementById('mb-body');
   if (!mbEditing) return;
+  const standalone = mbEditing.isStandalone;
   const visible = mbEditing.rows.filter(r => !r._deleted);
   if (!visible.length) {
     body.innerHTML = '<div class="mb-empty">No mistakes logged. Click <strong>+ Add Mistake</strong> below.</div>';
     return;
   }
   let html = `<table class="mb-table"><thead><tr>
+    ${standalone ? '<th style="width:110px">Source</th><th style="width:72px">Screenshot</th>' : ''}
     <th style="width:90px">Question</th>
     <th>Mistake</th>
     <th>Learning for next time</th>
@@ -1699,7 +1727,25 @@ function renderMistakeTable() {
   </tr></thead><tbody>`;
   mbEditing.rows.forEach((r, i) => {
     if (r._deleted) return;
+    const ssUrl = standalone && r.screenshot_path ? screenshotUrlCache.get(r.screenshot_path) : null;
     html += `<tr>
+      ${standalone ? `
+        <td data-label="Source"><input type="text" class="mb-source-input"
+            oninput="mbEditing.rows[${i}].source=this.value"
+            value="${escapeHtml(r.source || '')}"
+            placeholder="e.g. Homework"></td>
+        <td data-label="Screenshot" class="mb-screenshot-cell">
+          <input type="file" accept="image/*" id="ss-input-${i}" class="mb-screenshot-input"
+              onchange="handleScreenshotUpload(${i}, this)">
+          <label for="ss-input-${i}" class="mb-screenshot-btn" title="Upload screenshot">📷</label>
+          ${r._uploadingScreenshot ? '<span class="spinner" style="margin-left:0.4rem;vertical-align:middle"></span>' : ''}
+          ${ssUrl ? `<div class="mb-screenshot-wrap">
+            <img class="mb-screenshot-thumb" src="${escapeHtml(ssUrl)}"
+                onclick="openLightbox(${jsAttr(r.screenshot_path)})" alt="Screenshot" title="Click to enlarge">
+            <button type="button" class="btn-delete mb-screenshot-delete"
+                onclick="removeMistakeScreenshot(${i})" title="Remove screenshot">✕</button>
+          </div>` : ''}
+        </td>` : ''}
       <td data-label="Question"><textarea oninput="mbEditing.rows[${i}].question=this.value" placeholder="Q3a">${escapeHtml(r.question || '')}</textarea></td>
       <td data-label="Mistake"><textarea oninput="mbEditing.rows[${i}].mistake=this.value" placeholder="What did you get wrong?">${escapeHtml(r.mistake || '')}</textarea></td>
       <td data-label="Learning"><textarea oninput="mbEditing.rows[${i}].learning=this.value" placeholder="What to remember next time">${escapeHtml(r.learning || '')}</textarea></td>
@@ -1714,11 +1760,15 @@ function addMistakeRow() {
   if (!mbEditing) return;
   mbEditing.rows.push(makeBlankMistakeRow());
   renderMistakeTable();
-  // Focus the first textarea of the new row
   const tbody = document.querySelector('#mb-body .mb-table tbody');
   if (tbody) {
     const last = tbody.lastElementChild;
-    if (last) last.querySelector('textarea')?.focus();
+    if (last) {
+      const focusEl = mbEditing.isStandalone
+        ? last.querySelector('input.mb-source-input')
+        : last.querySelector('textarea');
+      focusEl?.focus();
+    }
   }
 }
 
@@ -1727,7 +1777,11 @@ function deleteMistakeRow(i) {
   const row = mbEditing.rows[i];
   if (!row) return;
   if (row._new) {
-    // Not saved yet — just drop it
+    // Clean up any uploaded screenshot
+    if (row.screenshot_path) {
+      sb.storage.from(SCREENSHOTS_BUCKET).remove([row.screenshot_path]);
+      screenshotUrlCache.delete(row.screenshot_path);
+    }
     mbEditing.rows.splice(i, 1);
   } else {
     row._deleted = true;
@@ -1746,26 +1800,47 @@ function mbModalBackdrop(e) {
 
 async function saveMistakes() {
   if (!mbEditing) return;
-  const { examId, paper } = mbEditing;
-  const isFilled = r => (r.question && r.question.trim()) || (r.mistake && r.mistake.trim()) || (r.learning && r.learning.trim());
+  const { examId, paper, isStandalone } = mbEditing;
+  const isFilled = r =>
+    (r.question && r.question.trim()) ||
+    (r.mistake && r.mistake.trim()) ||
+    (r.learning && r.learning.trim()) ||
+    (isStandalone && r.source && r.source.trim());
   const toDelete = mbEditing.rows.filter(r => r._deleted && r.id);
   const toInsert = mbEditing.rows
     .filter(r => !r._deleted && r._new && isFilled(r))
     .map(r => ({
-      user_id: currentUser.id, exam_id: examId, paper,
-      question: r.question || null, mistake: r.mistake || null, learning: r.learning || null
+      user_id: currentUser.id,
+      exam_id: examId || null,
+      paper: paper || null,
+      question: r.question || null,
+      mistake: r.mistake || null,
+      learning: r.learning || null,
+      ...(isStandalone ? { source: r.source || null, screenshot_path: r.screenshot_path || null } : {})
     }));
   const toUpdate = mbEditing.rows
     .filter(r => !r._deleted && !r._new && r.id)
     .map(r => ({
-      id: r.id, user_id: currentUser.id, exam_id: examId, paper,
-      question: r.question || null, mistake: r.mistake || null, learning: r.learning || null,
-      updated_at: new Date().toISOString()
+      id: r.id,
+      user_id: currentUser.id,
+      exam_id: examId || null,
+      paper: paper || null,
+      question: r.question || null,
+      mistake: r.mistake || null,
+      learning: r.learning || null,
+      updated_at: new Date().toISOString(),
+      ...(isStandalone ? { source: r.source || null, screenshot_path: r.screenshot_path || null } : {})
     }));
   try {
     if (toDelete.length) {
       const { error } = await sb.from('trial_exam_mistakes').delete().in('id', toDelete.map(r => r.id));
       if (error) throw error;
+      // Delete storage screenshots for removed rows
+      const paths = toDelete.filter(r => r.screenshot_path).map(r => r.screenshot_path);
+      if (paths.length) {
+        await sb.storage.from(SCREENSHOTS_BUCKET).remove(paths);
+        paths.forEach(p => screenshotUrlCache.delete(p));
+      }
     }
     if (toInsert.length) {
       const { error } = await sb.from('trial_exam_mistakes').insert(toInsert);
@@ -1775,15 +1850,19 @@ async function saveMistakes() {
       const { error } = await sb.from('trial_exam_mistakes').upsert(toUpdate);
       if (error) throw error;
     }
-    const k = `${examId}:${paper}`;
-    const keptCount = mbEditing.rows.filter(r => !r._deleted && isFilled(r)).length;
-    teMistakeCounts[k] = keptCount;
+    if (isStandalone) {
+      standaloneCount = mbEditing.rows.filter(r => !r._deleted && isFilled(r)).length;
+      renderStandaloneBadge();
+    } else {
+      const k = `${examId}:${paper}`;
+      teMistakeCounts[k] = mbEditing.rows.filter(r => !r._deleted && isFilled(r)).length;
+      renderTrialExams();
+    }
     const statusEl = document.getElementById('mb-saved');
     if (statusEl) {
       statusEl.classList.add('show');
       setTimeout(() => statusEl.classList.remove('show'), 1800);
     }
-    renderTrialExams();
     closeMistakeModal();
   } catch (err) {
     console.error(err);
@@ -1792,8 +1871,9 @@ async function saveMistakes() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && document.getElementById('mb-modal')?.classList.contains('open')) {
-    closeMistakeModal();
+  if (e.key === 'Escape') {
+    if (document.getElementById('img-lightbox')?.classList.contains('open')) { closeLightbox(); return; }
+    if (document.getElementById('mb-modal')?.classList.contains('open')) closeMistakeModal();
   }
 });
 
@@ -1801,14 +1881,16 @@ document.addEventListener('keydown', e => {
 async function openMistakeBookPrint() {
   const container = document.getElementById('print-mistake-book');
   if (!container) return;
-  // Build off-screen first, then trigger print.
   const { data, error } = await sb.from('trial_exam_mistakes')
     .select('*')
     .eq('user_id', currentUser.id)
     .order('exam_id').order('paper').order('created_at');
   if (error) { alert('Could not load mistakes: ' + error.message); return; }
+  // Separate exam-linked from standalone
+  const examLinked = (data || []).filter(m => m.exam_id != null);
+  const standalone = (data || []).filter(m => m.exam_id == null);
   const grouped = new Map();
-  (data || []).forEach(m => {
+  examLinked.forEach(m => {
     const k = `${m.exam_id}:${m.paper}`;
     if (!grouped.has(k)) grouped.set(k, []);
     grouped.get(k).push(m);
@@ -1841,11 +1923,277 @@ async function openMistakeBookPrint() {
       html += `</tbody></table>`;
     });
   });
+  // Standalone section at the back
+  if (standalone.length) {
+    any = true;
+    const bySource = new Map();
+    standalone.forEach(m => {
+      const src = (m.source || '').trim() || 'Other';
+      if (!bySource.has(src)) bySource.set(src, []);
+      bySource.get(src).push(m);
+    });
+    html += `<h2 class="pb-standalone-heading">Other Mistakes</h2>`;
+    bySource.forEach((rows, src) => {
+      html += `<h3 class="pb-source-heading">${escapeHtml(src)}</h3>
+        <table><thead><tr>
+          <th style="width:13%">Source</th>
+          <th style="width:14%">Question</th>
+          <th style="width:36.5%">Mistake</th>
+          <th style="width:36.5%">Learning</th>
+        </tr></thead><tbody>`;
+      rows.forEach(m => {
+        html += `<tr>
+          <td>${escapeHtml(m.source || '')}</td>
+          <td>${escapeHtml(m.question || '')}</td>
+          <td>${escapeHtml(m.mistake || '')}</td>
+          <td>${escapeHtml(m.learning || '')}</td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+    });
+  }
   if (!any) html += '<p class="pb-empty">No mistakes logged yet.</p>';
   container.innerHTML = html;
   document.body.classList.add('printing-mistake-book');
   const cleanup = () => {
     document.body.classList.remove('printing-mistake-book');
+    container.innerHTML = '';
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(() => window.print(), 50);
+}
+
+// ── SCREENSHOT UPLOAD ─────────────────────────────────────────────────
+async function handleScreenshotUpload(rowIndex, input) {
+  const file = input.files[0];
+  if (!file || !mbEditing) return;
+  if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+  if (file.size > 10 * 1024 * 1024) { alert('Image must be under 10MB.'); return; }
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+  const path = `${currentUser.id}/${Date.now()}.${ext}`;
+  mbEditing.rows[rowIndex]._uploadingScreenshot = true;
+  renderMistakeTable();
+  const { error } = await sb.storage.from(SCREENSHOTS_BUCKET).upload(path, file, { contentType: file.type });
+  if (error) {
+    mbEditing.rows[rowIndex]._uploadingScreenshot = false;
+    renderMistakeTable();
+    alert('Upload failed: ' + error.message);
+    return;
+  }
+  // Cache a signed URL for immediate display
+  const { data: ud } = await sb.storage.from(SCREENSHOTS_BUCKET).createSignedUrl(path, 86400);
+  if (ud?.signedUrl) screenshotUrlCache.set(path, ud.signedUrl);
+  // Remove old screenshot file if replacing
+  const oldPath = mbEditing.rows[rowIndex].screenshot_path;
+  if (oldPath && oldPath !== path) {
+    await sb.storage.from(SCREENSHOTS_BUCKET).remove([oldPath]);
+    screenshotUrlCache.delete(oldPath);
+  }
+  mbEditing.rows[rowIndex].screenshot_path = path;
+  mbEditing.rows[rowIndex]._uploadingScreenshot = false;
+  renderMistakeTable();
+}
+
+async function removeMistakeScreenshot(rowIndex) {
+  if (!mbEditing) return;
+  const row = mbEditing.rows[rowIndex];
+  if (!row) return;
+  const path = row.screenshot_path;
+  row.screenshot_path = null;
+  renderMistakeTable();
+  if (path) {
+    screenshotUrlCache.delete(path);
+    await sb.storage.from(SCREENSHOTS_BUCKET).remove([path]);
+  }
+}
+
+// ── LIGHTBOX ──────────────────────────────────────────────────────────
+async function openLightbox(path) {
+  const lb = document.getElementById('img-lightbox');
+  const img = document.getElementById('lightbox-img');
+  if (!lb || !img) return;
+  let url = screenshotUrlCache.get(path);
+  if (!url) {
+    const { data } = await sb.storage.from(SCREENSHOTS_BUCKET).createSignedUrl(path, 86400);
+    url = data?.signedUrl;
+    if (url) screenshotUrlCache.set(path, url);
+  }
+  if (!url) { alert('Could not load screenshot.'); return; }
+  img.src = url;
+  lb.classList.add('open');
+}
+
+function closeLightbox(e) {
+  if (e && e.target === document.getElementById('lightbox-img')) return;
+  const lb = document.getElementById('img-lightbox');
+  const img = document.getElementById('lightbox-img');
+  if (lb) lb.classList.remove('open');
+  if (img) img.src = '';
+}
+
+// ── STANDALONE BADGE ──────────────────────────────────────────────────
+function renderStandaloneBadge() {
+  const badge = document.getElementById('standalone-count-badge');
+  if (!badge) return;
+  if (standaloneCount > 0) {
+    badge.textContent = standaloneCount;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── CHECKLIST ─────────────────────────────────────────────────────────
+async function loadChecklist() {
+  const [catRes, itemRes] = await Promise.all([
+    sb.from('checklist_categories').select('*').eq('user_id', currentUser.id).order('sort_order'),
+    sb.from('checklist_items').select('*').eq('user_id', currentUser.id).order('sort_order')
+  ]);
+  clCategories = catRes.data || [];
+  clItems = itemRes.data || [];
+  renderChecklist();
+}
+
+function renderChecklist() {
+  const el = document.getElementById('cl-content');
+  if (!el) return;
+  if (!clCategories.length) {
+    el.innerHTML = '<div class="empty-state">No checklists yet. Click <strong>+ Add Category</strong> to create one.</div>';
+    return;
+  }
+  let html = '';
+  clCategories.forEach(cat => {
+    const items = clItems.filter(it => it.category_id === cat.id);
+    const total = items.length;
+    const done = items.filter(it => it.checked).length;
+    html += `<div class="cl-category" id="cl-cat-${cat.id}">
+      <div class="cl-cat-head">
+        <div class="cl-cat-title-row">
+          <span class="cl-cat-name">${escapeHtml(cat.name)}</span>
+          <span class="cl-cat-progress">${done}/${total}</span>
+        </div>
+        <div class="cl-cat-actions">
+          <button class="btn-ghost" onclick="unCheckCategory(${jsAttr(cat.id)})">↺ Reset</button>
+          <button class="btn-add" onclick="addChecklistItem(${jsAttr(cat.id)})">+ Item</button>
+          <button class="btn-delete" onclick="deleteCategory(${jsAttr(cat.id)})" title="Delete category">✕</button>
+        </div>
+      </div>
+      <div class="cl-items">`;
+    if (!items.length) {
+      html += '<div class="cl-empty">No items yet.</div>';
+    }
+    items.forEach(item => {
+      html += `<div class="cl-item${item.checked ? ' done' : ''}" onclick="toggleChecklistItem(${jsAttr(item.id)})">
+        <span class="cl-check${item.checked ? ' done' : ''}">${item.checked ? '✓' : ''}</span>
+        <span class="cl-item-text">${escapeHtml(item.text)}</span>
+        <button class="btn-delete cl-item-delete"
+            onclick="event.stopPropagation();deleteChecklistItem(${jsAttr(item.id)})"
+            title="Delete item">✕</button>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  el.innerHTML = html;
+}
+
+async function addCategory() {
+  const name = prompt('Category name (e.g. "Graphing", "Integration"):');
+  if (!name || !name.trim()) return;
+  const maxOrder = clCategories.reduce((m, c) => Math.max(m, c.sort_order || 0), -1);
+  const { data, error } = await sb.from('checklist_categories')
+    .insert({ user_id: currentUser.id, name: name.trim(), sort_order: maxOrder + 1 })
+    .select().single();
+  if (error) { alert('Could not add category: ' + error.message); return; }
+  clCategories.push(data);
+  renderChecklist();
+}
+
+async function deleteCategory(categoryId) {
+  if (!confirm('Delete this category and all its items?')) return;
+  const { error } = await sb.from('checklist_categories').delete().eq('id', categoryId);
+  if (error) { alert('Could not delete: ' + error.message); return; }
+  clCategories = clCategories.filter(c => c.id !== categoryId);
+  clItems = clItems.filter(it => it.category_id !== categoryId);
+  renderChecklist();
+}
+
+async function addChecklistItem(categoryId) {
+  const text = prompt('Item text (e.g. "Check x-intercepts"):');
+  if (!text || !text.trim()) return;
+  const catItems = clItems.filter(it => it.category_id === categoryId);
+  const maxOrder = catItems.reduce((m, it) => Math.max(m, it.sort_order || 0), -1);
+  const { data, error } = await sb.from('checklist_items')
+    .insert({ user_id: currentUser.id, category_id: categoryId, text: text.trim(), checked: false, sort_order: maxOrder + 1 })
+    .select().single();
+  if (error) { alert('Could not add item: ' + error.message); return; }
+  clItems.push(data);
+  renderChecklist();
+}
+
+async function deleteChecklistItem(itemId) {
+  const { error } = await sb.from('checklist_items').delete().eq('id', itemId);
+  if (error) { alert('Could not delete item: ' + error.message); return; }
+  clItems = clItems.filter(it => it.id !== itemId);
+  renderChecklist();
+}
+
+async function toggleChecklistItem(itemId) {
+  const item = clItems.find(it => it.id === itemId);
+  if (!item) return;
+  item.checked = !item.checked;
+  renderChecklist();
+  const { error } = await sb.from('checklist_items')
+    .update({ checked: item.checked, updated_at: new Date().toISOString() })
+    .eq('id', itemId);
+  if (error) {
+    item.checked = !item.checked;
+    renderChecklist();
+    console.error(error);
+  }
+}
+
+async function unCheckCategory(categoryId) {
+  const ids = clItems.filter(it => it.category_id === categoryId).map(it => it.id);
+  if (!ids.length) return;
+  clItems.forEach(it => { if (it.category_id === categoryId) it.checked = false; });
+  renderChecklist();
+  const { error } = await sb.from('checklist_items')
+    .update({ checked: false, updated_at: new Date().toISOString() })
+    .in('id', ids);
+  if (error) console.error(error);
+}
+
+async function openChecklistPrint() {
+  const container = document.getElementById('print-checklist');
+  if (!container) return;
+  const studentName = currentUser.user_metadata?.display_name || currentUser.email || '';
+  const today = new Date().toLocaleDateString('en-AU');
+  let html = `<h1>Study Checklists</h1>
+    <div class="pb-meta">${escapeHtml(studentName)} · Generated ${escapeHtml(today)}</div>`;
+  if (!clCategories.length) {
+    html += '<p class="pb-empty">No checklist items yet.</p>';
+  }
+  clCategories.forEach(cat => {
+    const items = clItems.filter(it => it.category_id === cat.id);
+    if (!items.length) return;
+    html += `<h2>${escapeHtml(cat.name)}</h2>
+      <table><thead><tr>
+        <th style="width:8%">Done</th>
+        <th>Item</th>
+      </tr></thead><tbody>`;
+    items.forEach(item => {
+      html += `<tr>
+        <td style="text-align:center">${item.checked ? '✓' : ''}</td>
+        <td>${escapeHtml(item.text)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  });
+  container.innerHTML = html;
+  document.body.classList.add('printing-checklist');
+  const cleanup = () => {
+    document.body.classList.remove('printing-checklist');
     container.innerHTML = '';
     window.removeEventListener('afterprint', cleanup);
   };
